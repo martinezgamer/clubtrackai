@@ -650,7 +650,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // General Image Reading API
+  // General Image Reading API with Cloud Vision
   app.post('/api/read-image', upload.single('image'), async (req, res) => {
     try {
       if (!req.file) {
@@ -673,6 +673,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Image reading error:', error);
       res.status(500).json({ error: 'Failed to read image' });
+    }
+  });
+
+  // Cloud Vision API test endpoint
+  app.post('/api/test-cloud-vision', upload.single('image'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'Image file is required' });
+      }
+
+      const imageBuffer = fs.readFileSync(req.file.path);
+      const imageBase64 = imageBuffer.toString('base64');
+      
+      // Clean up uploaded file
+      fs.unlinkSync(req.file.path);
+
+      const analysis = await geminiService.analyzeWithCloudVision(imageBase64);
+
+      res.json({ analysis });
+    } catch (error) {
+      console.error('Cloud Vision test error:', error);
+      res.status(500).json({ error: 'Failed to analyze with Cloud Vision' });
+    }
+  });
+
+  // OCR-specific endpoint for text extraction
+  app.post('/api/ocr', upload.single('image'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'Image file is required' });
+      }
+
+      const imageBuffer = fs.readFileSync(req.file.path);
+      const imageBase64 = imageBuffer.toString('base64');
+      
+      // Clean up uploaded file
+      fs.unlinkSync(req.file.path);
+
+      const ocrResult = await geminiService.extractTextFromImage(imageBase64);
+
+      res.json({ text: ocrResult });
+    } catch (error) {
+      console.error('OCR error:', error);
+      res.status(500).json({ error: 'Failed to extract text from image' });
     }
   });
 

@@ -209,6 +209,20 @@ export const imageApi = {
     formData.append('image', image);
     return apiRequest('POST', '/api/read-image', formData);
   },
+  
+  // OCR for text extraction
+  extractText: (image: File) => {
+    const formData = new FormData();
+    formData.append('image', image);
+    return apiRequest('POST', '/api/ocr', formData);
+  },
+  
+  // Test Cloud Vision API
+  testCloudVision: (image: File) => {
+    const formData = new FormData();
+    formData.append('image', image);
+    return apiRequest('POST', '/api/test-cloud-vision', formData);
+  },
 };
 
 // Conversations API

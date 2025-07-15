@@ -1,8 +1,16 @@
 import { GoogleGenAI } from "@google/genai";
+import { ImageAnnotatorClient } from '@google-cloud/vision';
 import { storage } from "../storage";
 import { nanoid } from "nanoid";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+
+// Initialize Google Cloud Vision client
+const visionClient = new ImageAnnotatorClient({
+  keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS || undefined,
+  projectId: process.env.GOOGLE_CLOUD_PROJECT_ID || undefined,
+  credentials: process.env.GOOGLE_CLOUD_CREDENTIALS ? JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS) : undefined
+});
 
 export class SamAI {
   private sessionId: string;
@@ -86,6 +94,7 @@ export class SamAI {
     - CHECK_LINEUP: Verify and suggest lineup improvements
     - TRACK_PATTERNS: Monitor dancer reliability patterns
     - ANALYZE_IMAGE: Read and analyze uploaded images
+    - EXTRACT_TEXT: Use OCR to extract text from images  
     - PREDICT_TRENDS: Predict scheduling patterns and issues
     - OPTIMIZE_WORKFLOW: Suggest process improvements
     
@@ -486,9 +495,116 @@ export const geminiService = {
 
   async readImage(imageBase64: string, imageMimeType: string): Promise<string> {
     try {
+      // First try Google Cloud Vision API for detailed analysis
+      const cloudVisionResult = await this.analyzeWithCloudVision(imageBase64);
+      
+      // Then use Gemini for intelligent interpretation
+      const geminiResult = await this.analyzeWithGemini(imageBase64, imageMimeType, cloudVisionResult);
+      
+      // Combine both results for comprehensive analysis
+      return `${geminiResult}\n\n**Additional Technical Details:**\n${cloudVisionResult}`;
+    } catch (error) {
+      console.error("Error reading image:", error);
+      // Fallback to Gemini only if Cloud Vision fails
+      return await this.analyzeWithGemini(imageBase64, imageMimeType);
+    }
+  },
+
+  async analyzeWithCloudVision(imageBase64: string): Promise<string> {
+    try {
+      const imageBuffer = Buffer.from(imageBase64, 'base64');
+      
+      // Perform multiple types of analysis including enhanced OCR
+      const [
+        textDetection,
+        documentTextDetection,
+        labelDetection, 
+        faceDetection,
+        objectDetection,
+        logoDetection,
+        landmarkDetection
+      ] = await Promise.all([
+        visionClient.textDetection({ image: { content: imageBuffer } }),
+        visionClient.documentTextDetection({ image: { content: imageBuffer } }),
+        visionClient.labelDetection({ image: { content: imageBuffer } }),
+        visionClient.faceDetection({ image: { content: imageBuffer } }),
+        visionClient.objectLocalization({ image: { content: imageBuffer } }),
+        visionClient.logoDetection({ image: { content: imageBuffer } }),
+        visionClient.landmarkDetection({ image: { content: imageBuffer } })
+      ]);
+
+      let analysis = "";
+      
+      // Enhanced OCR - Text detection with structure
+      if (textDetection[0].textAnnotations && textDetection[0].textAnnotations.length > 0) {
+        const detectedText = textDetection[0].textAnnotations[0].description;
+        analysis += `📝 **OCR Text Found:**\n${detectedText}\n\n`;
+      }
+      
+      // Document text detection for structured text
+      if (documentTextDetection[0].fullTextAnnotation && documentTextDetection[0].fullTextAnnotation.text) {
+        const documentText = documentTextDetection[0].fullTextAnnotation.text;
+        if (documentText && documentText !== textDetection[0].textAnnotations?.[0]?.description) {
+          analysis += `📄 **Document Text (Structured):**\n${documentText}\n\n`;
+        }
+      }
+      
+      // Label detection
+      if (labelDetection[0].labelAnnotations && labelDetection[0].labelAnnotations.length > 0) {
+        const labels = labelDetection[0].labelAnnotations
+          .slice(0, 5)
+          .map(label => `${label.description} (${Math.round(label.score * 100)}%)`)
+          .join(', ');
+        analysis += `🏷️ **Labels:** ${labels}\n`;
+      }
+      
+      // Face detection
+      if (faceDetection[0].faceAnnotations && faceDetection[0].faceAnnotations.length > 0) {
+        const faceCount = faceDetection[0].faceAnnotations.length;
+        analysis += `👤 **Faces Detected:** ${faceCount} person${faceCount > 1 ? 's' : ''}\n`;
+      }
+      
+      // Object detection
+      if (objectDetection[0].localizedObjectAnnotations && objectDetection[0].localizedObjectAnnotations.length > 0) {
+        const objects = objectDetection[0].localizedObjectAnnotations
+          .slice(0, 3)
+          .map(obj => `${obj.name} (${Math.round(obj.score * 100)}%)`)
+          .join(', ');
+        analysis += `🎯 **Objects:** ${objects}\n`;
+      }
+      
+      // Logo detection
+      if (logoDetection[0].logoAnnotations && logoDetection[0].logoAnnotations.length > 0) {
+        const logos = logoDetection[0].logoAnnotations
+          .map(logo => logo.description)
+          .join(', ');
+        analysis += `🏢 **Logos/Brands:** ${logos}\n`;
+      }
+      
+      // Landmark detection
+      if (landmarkDetection[0].landmarkAnnotations && landmarkDetection[0].landmarkAnnotations.length > 0) {
+        const landmarks = landmarkDetection[0].landmarkAnnotations
+          .map(landmark => landmark.description)
+          .join(', ');
+        analysis += `🏛️ **Landmarks:** ${landmarks}\n`;
+      }
+      
+      return analysis || "No specific features detected by Cloud Vision API";
+    } catch (error) {
+      console.error("Cloud Vision API error:", error);
+      return "Cloud Vision analysis unavailable";
+    }
+  },
+
+  async analyzeWithGemini(imageBase64: string, imageMimeType: string, cloudVisionContext?: string): Promise<string> {
+    try {
       if (!process.env.GEMINI_API_KEY) {
         throw new Error("GEMINI_API_KEY not configured");
       }
+
+      const contextPrompt = cloudVisionContext 
+        ? `Please analyze this image in detail. Here's some technical info I found: ${cloudVisionContext}. Now give me your intelligent interpretation of what's happening in the image, including context, emotions, actions, and any relevant insights.`
+        : "Please read and describe everything you see in this image. Include any text, objects, people, and context. Be detailed and thorough.";
 
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
@@ -502,7 +618,7 @@ export const geminiService = {
                   mimeType: imageMimeType
                 }
               },
-              { text: "Please read and describe everything you see in this image. Include any text, objects, people, and context. Be detailed and thorough." }
+              { text: contextPrompt }
             ]
           }
         ]
@@ -510,7 +626,7 @@ export const geminiService = {
 
       return response.text || "Unable to read image";
     } catch (error) {
-      console.error("Error reading image:", error);
+      console.error("Error analyzing with Gemini:", error);
       return "Error reading image: " + (error.message || "Unknown error occurred");
     }
   },
@@ -567,6 +683,11 @@ export const geminiService = {
         throw new Error("GEMINI_API_KEY not configured");
       }
 
+      // Use Cloud Vision for technical analysis
+      const cloudVisionResult = await this.analyzeWithCloudVision(imageBase64);
+      
+      const contextPrompt = `Analyze this image for social media content creation. Here's technical info: ${cloudVisionResult}. Now suggest captions, hashtags, and social media strategies for a gentlemen's club based on what you see.`;
+
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: [
@@ -579,7 +700,7 @@ export const geminiService = {
                   mimeType: imageMimeType
                 }
               },
-              { text: "Analyze this image and suggest social media content ideas for a gentlemen's club." }
+              { text: contextPrompt }
             ]
           }
         ]
@@ -589,6 +710,39 @@ export const geminiService = {
     } catch (error) {
       console.error("Error analyzing image:", error);
       return "Error analyzing image: " + (error.message || "Unknown error occurred");
+    }
+  },
+
+  // Dedicated OCR function for text extraction
+  async extractTextFromImage(imageBase64: string): Promise<string> {
+    try {
+      const imageBuffer = Buffer.from(imageBase64, 'base64');
+      
+      // Use both text detection methods for best results
+      const [textDetection, documentTextDetection] = await Promise.all([
+        visionClient.textDetection({ image: { content: imageBuffer } }),
+        visionClient.documentTextDetection({ image: { content: imageBuffer } })
+      ]);
+
+      let extractedText = "";
+      
+      // Standard text detection
+      if (textDetection[0].textAnnotations && textDetection[0].textAnnotations.length > 0) {
+        extractedText = textDetection[0].textAnnotations[0].description || "";
+      }
+      
+      // Document text detection (more structured)
+      if (documentTextDetection[0].fullTextAnnotation && documentTextDetection[0].fullTextAnnotation.text) {
+        const documentText = documentTextDetection[0].fullTextAnnotation.text;
+        if (documentText && documentText.length > extractedText.length) {
+          extractedText = documentText;
+        }
+      }
+      
+      return extractedText || "No text found in image";
+    } catch (error) {
+      console.error("OCR error:", error);
+      return "Failed to extract text from image";
     }
   }
 };

@@ -24,6 +24,7 @@ AI personality: Sam - chill, laid-back, and friendly AI assistant. Casual and re
 - **Database Provider**: Neon serverless PostgreSQL
 - **Real-time Communication**: WebSocket server for chat functionality
 - **AI Integration**: Google Gemini AI for intelligent assistance
+- **Computer Vision**: Google Cloud Vision API for advanced image analysis and OCR
 
 ### Development Environment
 - **TypeScript**: Full type safety across frontend and backend
@@ -56,6 +57,13 @@ AI personality: Sam - chill, laid-back, and friendly AI assistant. Casual and re
   - Memory-first approach with timestamped transactions and individual quirks
   - Proactive suggestions for schedule gaps and backup dancer recommendations
   - Daily briefings with confirmation status and availability predictions
+  - **Advanced Image Analysis**: Google Cloud Vision API integration for:
+    - Enhanced OCR (Optical Character Recognition) for text extraction
+    - Object and face detection
+    - Logo and landmark recognition
+    - Label detection with confidence scores
+    - Document text analysis for structured content
+  - **Varied Welcome Messages**: Randomized greeting messages to prevent repetitive interactions
 
 ### 3. Form Builder
 - **Purpose**: Create custom forms for schedules, feedback, and data collection
@@ -171,6 +179,9 @@ AI personality: Sam - chill, laid-back, and friendly AI assistant. Casual and re
 ### Environment Configuration
 - **DATABASE_URL**: PostgreSQL connection string (required)
 - **GEMINI_API_KEY**: Google AI API key for chat functionality
+- **GOOGLE_CLOUD_PROJECT_ID**: Google Cloud project ID for Vision API (optional)
+- **GOOGLE_APPLICATION_CREDENTIALS**: Path to Google Cloud service account key file (optional)
+- **GOOGLE_CLOUD_CREDENTIALS**: JSON string of Google Cloud service account credentials (optional)
 - **NODE_ENV**: Environment setting (development/production)
 
 ### File Structure
