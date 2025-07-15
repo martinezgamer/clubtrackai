@@ -1,0 +1,331 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(240, 10%, 3.9%);
+  --foreground: hsl(0, 0%, 98%);
+  --muted: hsl(240, 3.7%, 15.9%);
+  --muted-foreground: hsl(240, 5%, 64.9%);
+  --popover: hsl(240, 10%, 3.9%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --card: hsl(240, 10%, 3.9%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --border: hsl(240, 3.7%, 15.9%);
+  --input: hsl(240, 3.7%, 15.9%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(0, 0%, 98%);
+  --secondary: hsl(240, 3.7%, 15.9%);
+  --secondary-foreground: hsl(0, 0%, 98%);
+  --accent: hsl(240, 3.7%, 15.9%);
+  --accent-foreground: hsl(0, 0%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(240, 4.9%, 83.9%);
+  --radius: 0.5rem;
+
+  /* Custom color variables for the club theme */
+  --club-primary: hsl(207, 90%, 54%);
+  --club-secondary: hsl(259, 71%, 65%);
+  --club-accent: hsl(158, 64%, 52%);
+  --club-dark-bg: hsl(222, 84%, 4.9%);
+  --club-dark-surface: hsl(221, 39%, 11%);
+  --club-dark-border: hsl(215, 27.9%, 16.9%);
+  --club-success: hsl(158, 64%, 52%);
+  --club-warning: hsl(48, 96%, 53%);
+  --club-error: hsl(0, 84%, 60%);
+}
+
+.light {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(20, 14.3%, 4.1%);
+  --muted: hsl(60, 4.8%, 95.9%);
+  --muted-foreground: hsl(25, 5.3%, 44.7%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(20, 14.3%, 4.1%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(20, 14.3%, 4.1%);
+  --border: hsl(20, 5.9%, 90%);
+  --input: hsl(20, 5.9%, 90%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(0, 0%, 98%);
+  --secondary: hsl(60, 4.8%, 95.9%);
+  --secondary-foreground: hsl(24, 9.8%, 10%);
+  --accent: hsl(60, 4.8%, 95.9%);
+  --accent-foreground: hsl(24, 9.8%, 10%);
+  --destructive: hsl(0, 84.2%, 60.2%);
+  --destructive-foreground: hsl(60, 9.1%, 97.8%);
+  --ring: hsl(20, 14.3%, 4.1%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-feature-settings: "cv03", "cv04", "cv11";
+  }
+
+  /* Custom scrollbar for dark theme */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--club-dark-surface));
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--club-dark-border));
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
+  }
+
+  /* Custom focus styles */
+  .focus-visible:focus-visible {
+    outline: 2px solid hsl(var(--club-primary));
+    outline-offset: 2px;
+  }
+
+  /* Animation keyframes */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideIn {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  /* Custom utility classes */
+  .animate-fadeIn {
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  .animate-slideIn {
+    animation: slideIn 0.3s ease-out;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* Chat message styling */
+  .chat-message {
+    @apply animate-fadeIn;
+  }
+
+  .chat-message.user {
+    @apply ml-auto;
+  }
+
+  .chat-message.ai {
+    @apply mr-auto;
+  }
+
+  /* Status indicators */
+  .status-active {
+    @apply bg-green-500;
+  }
+
+  .status-inactive {
+    @apply bg-gray-400;
+  }
+
+  .status-problematic {
+    @apply bg-red-500;
+  }
+
+  /* Role badges */
+  .role-dancer {
+    @apply bg-purple-500/20 text-purple-400 border-purple-500/20;
+  }
+
+  .role-staff {
+    @apply bg-blue-500/20 text-blue-400 border-blue-500/20;
+  }
+
+  .role-regular {
+    @apply bg-green-500/20 text-green-400 border-green-500/20;
+  }
+
+  .role-friend {
+    @apply bg-yellow-500/20 text-yellow-400 border-yellow-500/20;
+  }
+
+  .role-family {
+    @apply bg-orange-500/20 text-orange-400 border-orange-500/20;
+  }
+
+  /* Button hover effects */
+  .btn-hover-scale {
+    @apply transition-transform duration-200;
+  }
+
+  .btn-hover-scale:hover {
+    @apply scale-105;
+  }
+
+  /* Card hover effects */
+  .card-hover {
+    @apply transition-all duration-200;
+  }
+
+  .card-hover:hover {
+    @apply shadow-lg border-gray-600;
+  }
+
+  /* Loading spinner */
+  .spinner {
+    @apply w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin;
+  }
+
+  /* Voice recognition indicator */
+  .voice-recording {
+    @apply relative;
+  }
+
+  .voice-recording::after {
+    content: '';
+    @apply absolute -inset-1 rounded-full bg-red-500 opacity-50 animate-ping;
+  }
+
+  /* Custom focus ring */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900;
+  }
+
+  /* Gradient backgrounds */
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(var(--club-primary)), hsl(var(--club-secondary)));
+  }
+
+  .gradient-success {
+    background: linear-gradient(135deg, hsl(var(--club-success)), hsl(var(--club-accent)));
+  }
+
+  .gradient-warning {
+    background: linear-gradient(135deg, hsl(var(--club-warning)), hsl(var(--club-error)));
+  }
+
+  /* Text gradients */
+  .text-gradient-primary {
+    background: linear-gradient(135deg, hsl(var(--club-primary)), hsl(var(--club-secondary)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Custom shadows */
+  .shadow-glow {
+    box-shadow: 0 0 20px hsl(var(--club-primary) / 0.3);
+  }
+
+  .shadow-glow-success {
+    box-shadow: 0 0 20px hsl(var(--club-success) / 0.3);
+  }
+
+  .shadow-glow-warning {
+    box-shadow: 0 0 20px hsl(var(--club-warning) / 0.3);
+  }
+
+  /* Mobile responsive utilities */
+  @media (max-width: 768px) {
+    .mobile-hide {
+      @apply hidden;
+    }
+
+    .mobile-show {
+      @apply block;
+    }
+
+    .mobile-full {
+      @apply w-full;
+    }
+  }
+}
+
+/* Custom component styles */
+@layer components {
+  .sidebar {
+    @apply w-80 bg-gray-900 border-r border-gray-700 flex flex-col h-screen;
+  }
+
+  .chat-interface {
+    @apply flex-1 flex flex-col;
+  }
+
+  .contact-card {
+    @apply bg-gray-800 border-gray-700 hover:bg-gray-750 transition-colors card-hover;
+  }
+
+  .form-field {
+    @apply bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus-ring;
+  }
+
+  .calendar-event {
+    @apply p-2 rounded-lg border border-gray-600 bg-gray-800 text-white;
+  }
+
+  .memory-item {
+    @apply p-3 bg-gray-800 rounded-lg border border-gray-700;
+  }
+
+  .quick-action-btn {
+    @apply w-full p-3 rounded-lg text-left transition-colors btn-hover-scale;
+  }
+
+  .status-indicator {
+    @apply w-2 h-2 rounded-full;
+  }
+
+  .avatar-placeholder {
+    @apply w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium;
+  }
+
+  .message-bubble {
+    @apply rounded-lg p-4 max-w-2xl;
+  }
+
+  .message-bubble.user {
+    @apply bg-green-500/20 ml-auto;
+  }
+
+  .message-bubble.ai {
+    @apply bg-gray-800;
+  }
+
+  .typing-indicator {
+    @apply flex items-center space-x-2;
+  }
+
+  .typing-dot {
+    @apply w-2 h-2 bg-gray-400 rounded-full animate-bounce;
+  }
+}

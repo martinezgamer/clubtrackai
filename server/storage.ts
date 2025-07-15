@@ -1,0 +1,405 @@
+import { 
+  users, contacts, conversations, forms, formResponses, 
+  calendarEvents, socialMediaContent, memoryItems, salesItems, salesTransactions,
+  type User, type InsertUser, type Contact, type InsertContact,
+  type Conversation, type InsertConversation, type Form, type InsertForm,
+  type FormResponse, type InsertFormResponse, type CalendarEvent, type InsertCalendarEvent,
+  type SocialMediaContent, type InsertSocialMediaContent,
+  type MemoryItem, type InsertMemoryItem, type SalesItem, type InsertSalesItem,
+  type SalesTransaction, type InsertSalesTransaction
+} from "@shared/schema";
+import { db } from "./db";
+import { eq, desc, and, or, like, gte, lte } from "drizzle-orm";
+
+export interface IStorage {
+  // Users
+  getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+
+  // Contacts
+  getContact(id: number): Promise<Contact | undefined>;
+  getContacts(filters?: { role?: string; status?: string }): Promise<Contact[]>;
+  createContact(contact: InsertContact): Promise<Contact>;
+  updateContact(id: number, contact: Partial<InsertContact>): Promise<Contact>;
+  deleteContact(id: number): Promise<void>;
+  searchContacts(query: string): Promise<Contact[]>;
+
+  // Conversations
+  getConversation(id: number): Promise<Conversation | undefined>;
+  getConversationsByContact(contactId: number): Promise<Conversation[]>;
+  getRecentConversations(limit?: number): Promise<Conversation[]>;
+  createConversation(conversation: InsertConversation): Promise<Conversation>;
+
+  // Forms
+  getForm(id: number): Promise<Form | undefined>;
+  getForms(includeInactive?: boolean): Promise<Form[]>;
+  createForm(form: InsertForm): Promise<Form>;
+  updateForm(id: number, form: Partial<InsertForm>): Promise<Form>;
+  deleteForm(id: number): Promise<void>;
+
+  // Form Responses
+  getFormResponse(id: number): Promise<FormResponse | undefined>;
+  getFormResponses(formId: number): Promise<FormResponse[]>;
+  createFormResponse(response: InsertFormResponse): Promise<FormResponse>;
+
+  // Calendar Events
+  getCalendarEvent(id: number): Promise<CalendarEvent | undefined>;
+  getCalendarEvents(startDate?: Date, endDate?: Date): Promise<CalendarEvent[]>;
+  createCalendarEvent(event: InsertCalendarEvent): Promise<CalendarEvent>;
+  updateCalendarEvent(id: number, event: Partial<InsertCalendarEvent>): Promise<CalendarEvent>;
+  deleteCalendarEvent(id: number): Promise<void>;
+
+  // Social Media Content
+  getSocialMediaContent(id: number): Promise<SocialMediaContent | undefined>;
+  getSocialMediaContentByDate(date: Date): Promise<SocialMediaContent[]>;
+  getAllSocialMediaContent(): Promise<SocialMediaContent[]>;
+  createSocialMediaContent(content: InsertSocialMediaContent): Promise<SocialMediaContent>;
+  updateSocialMediaContent(id: number, content: Partial<InsertSocialMediaContent>): Promise<SocialMediaContent>;
+  deleteSocialMediaContent(id: number): Promise<void>;
+
+  // Memory Items
+  getMemoryItem(id: number): Promise<MemoryItem | undefined>;
+  getMemoryItems(contactId?: number, category?: string): Promise<MemoryItem[]>;
+  createMemoryItem(item: InsertMemoryItem): Promise<MemoryItem>;
+  updateMemoryItem(id: number, item: Partial<InsertMemoryItem>): Promise<MemoryItem>;
+  deleteMemoryItem(id: number): Promise<void>;
+
+  // Sales Items
+  getSalesItem(id: number): Promise<SalesItem | undefined>;
+  getSalesItems(category?: string): Promise<SalesItem[]>;
+  createSalesItem(item: InsertSalesItem): Promise<SalesItem>;
+  updateSalesItem(id: number, item: Partial<InsertSalesItem>): Promise<SalesItem>;
+  deleteSalesItem(id: number): Promise<void>;
+
+  // Sales Transactions
+  getSalesTransaction(id: number): Promise<SalesTransaction | undefined>;
+  getSalesTransactions(itemId?: number, customerId?: number): Promise<SalesTransaction[]>;
+  createSalesTransaction(transaction: InsertSalesTransaction): Promise<SalesTransaction>;
+  updateSalesTransaction(id: number, transaction: Partial<InsertSalesTransaction>): Promise<SalesTransaction>;
+}
+
+export class DatabaseStorage implements IStorage {
+  // Users
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
+  }
+
+  // Contacts
+  async getContact(id: number): Promise<Contact | undefined> {
+    const [contact] = await db.select().from(contacts).where(eq(contacts.id, id));
+    return contact || undefined;
+  }
+
+  async getContacts(filters?: { role?: string; status?: string }): Promise<Contact[]> {
+    let query = db.select().from(contacts);
+    
+    if (filters?.role || filters?.status) {
+      const conditions = [];
+      if (filters.role) conditions.push(eq(contacts.role, filters.role));
+      if (filters.status) conditions.push(eq(contacts.status, filters.status));
+      query = query.where(and(...conditions));
+    }
+    
+    return query.orderBy(desc(contacts.lastContact), contacts.name);
+  }
+
+  async createContact(contact: InsertContact): Promise<Contact> {
+    const [newContact] = await db.insert(contacts).values(contact).returning();
+    return newContact;
+  }
+
+  async updateContact(id: number, contact: Partial<InsertContact>): Promise<Contact> {
+    const [updatedContact] = await db
+      .update(contacts)
+      .set({ ...contact, updatedAt: new Date() })
+      .where(eq(contacts.id, id))
+      .returning();
+    return updatedContact;
+  }
+
+  async deleteContact(id: number): Promise<void> {
+    await db.delete(contacts).where(eq(contacts.id, id));
+  }
+
+  async searchContacts(query: string): Promise<Contact[]> {
+    return db.select().from(contacts).where(
+      or(
+        like(contacts.name, `%${query}%`),
+        like(contacts.nickname, `%${query}%`),
+        like(contacts.role, `%${query}%`)
+      )
+    );
+  }
+
+  // Conversations
+  async getConversation(id: number): Promise<Conversation | undefined> {
+    const [conversation] = await db.select().from(conversations).where(eq(conversations.id, id));
+    return conversation || undefined;
+  }
+
+  async getConversationsByContact(contactId: number): Promise<Conversation[]> {
+    return db.select().from(conversations)
+      .where(eq(conversations.contactId, contactId))
+      .orderBy(desc(conversations.createdAt));
+  }
+
+  async getRecentConversations(limit: number = 50): Promise<Conversation[]> {
+    return db.select().from(conversations)
+      .orderBy(desc(conversations.createdAt))
+      .limit(limit);
+  }
+
+  async createConversation(conversation: InsertConversation): Promise<Conversation> {
+    const [newConversation] = await db.insert(conversations).values(conversation).returning();
+    return newConversation;
+  }
+
+  // Forms
+  async getForm(id: number): Promise<Form | undefined> {
+    const [form] = await db.select().from(forms).where(eq(forms.id, id));
+    return form || undefined;
+  }
+
+  async getForms(includeInactive: boolean = false): Promise<Form[]> {
+    let query = db.select().from(forms);
+    if (!includeInactive) {
+      query = query.where(eq(forms.isActive, true));
+    }
+    return query.orderBy(desc(forms.createdAt));
+  }
+
+  async createForm(form: InsertForm): Promise<Form> {
+    const [newForm] = await db.insert(forms).values(form).returning();
+    return newForm;
+  }
+
+  async updateForm(id: number, form: Partial<InsertForm>): Promise<Form> {
+    const [updatedForm] = await db
+      .update(forms)
+      .set({ ...form, updatedAt: new Date() })
+      .where(eq(forms.id, id))
+      .returning();
+    return updatedForm;
+  }
+
+  async deleteForm(id: number): Promise<void> {
+    await db.delete(forms).where(eq(forms.id, id));
+  }
+
+  // Form Responses
+  async getFormResponse(id: number): Promise<FormResponse | undefined> {
+    const [response] = await db.select().from(formResponses).where(eq(formResponses.id, id));
+    return response || undefined;
+  }
+
+  async getFormResponses(formId: number): Promise<FormResponse[]> {
+    return db.select().from(formResponses)
+      .where(eq(formResponses.formId, formId))
+      .orderBy(desc(formResponses.submittedAt));
+  }
+
+  async createFormResponse(response: InsertFormResponse): Promise<FormResponse> {
+    const [newResponse] = await db.insert(formResponses).values(response).returning();
+    return newResponse;
+  }
+
+  // Calendar Events
+  async getCalendarEvent(id: number): Promise<CalendarEvent | undefined> {
+    const [event] = await db.select().from(calendarEvents).where(eq(calendarEvents.id, id));
+    return event || undefined;
+  }
+
+  async getCalendarEvents(startDate?: Date, endDate?: Date): Promise<CalendarEvent[]> {
+    let query = db.select().from(calendarEvents);
+    
+    if (startDate && endDate) {
+      query = query.where(
+        and(
+          gte(calendarEvents.startTime, startDate),
+          lte(calendarEvents.endTime, endDate)
+        )
+      );
+    }
+    
+    return query.orderBy(calendarEvents.startTime);
+  }
+
+  async createCalendarEvent(event: InsertCalendarEvent): Promise<CalendarEvent> {
+    const [newEvent] = await db.insert(calendarEvents).values(event).returning();
+    return newEvent;
+  }
+
+  async updateCalendarEvent(id: number, event: Partial<InsertCalendarEvent>): Promise<CalendarEvent> {
+    const [updatedEvent] = await db
+      .update(calendarEvents)
+      .set({ ...event, updatedAt: new Date() })
+      .where(eq(calendarEvents.id, id))
+      .returning();
+    return updatedEvent;
+  }
+
+  async deleteCalendarEvent(id: number): Promise<void> {
+    await db.delete(calendarEvents).where(eq(calendarEvents.id, id));
+  }
+
+  // Social Media Content
+  async getSocialMediaContent(id: number): Promise<SocialMediaContent | undefined> {
+    const [content] = await db.select().from(socialMediaContent).where(eq(socialMediaContent.id, id));
+    return content || undefined;
+  }
+
+  async getSocialMediaContentByDate(date: Date): Promise<SocialMediaContent[]> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    return db.select().from(socialMediaContent)
+      .where(
+        and(
+          gte(socialMediaContent.createdAt, startOfDay),
+          lte(socialMediaContent.createdAt, endOfDay)
+        )
+      )
+      .orderBy(desc(socialMediaContent.createdAt));
+  }
+
+  async getAllSocialMediaContent(): Promise<SocialMediaContent[]> {
+    return db.select().from(socialMediaContent)
+      .orderBy(desc(socialMediaContent.createdAt));
+  }
+
+  async createSocialMediaContent(content: InsertSocialMediaContent): Promise<SocialMediaContent> {
+    const [newContent] = await db.insert(socialMediaContent).values(content).returning();
+    return newContent;
+  }
+
+  async updateSocialMediaContent(id: number, content: Partial<InsertSocialMediaContent>): Promise<SocialMediaContent> {
+    const [updatedContent] = await db
+      .update(socialMediaContent)
+      .set({ ...content, updatedAt: new Date() })
+      .where(eq(socialMediaContent.id, id))
+      .returning();
+    return updatedContent;
+  }
+
+  async deleteSocialMediaContent(id: number): Promise<void> {
+    await db.delete(socialMediaContent).where(eq(socialMediaContent.id, id));
+  }
+
+  // Memory Items
+  async getMemoryItem(id: number): Promise<MemoryItem | undefined> {
+    const [item] = await db.select().from(memoryItems).where(eq(memoryItems.id, id));
+    return item || undefined;
+  }
+
+  async getMemoryItems(contactId?: number, category?: string): Promise<MemoryItem[]> {
+    let query = db.select().from(memoryItems);
+    
+    if (contactId || category) {
+      const conditions = [];
+      if (contactId) conditions.push(eq(memoryItems.contactId, contactId));
+      if (category) conditions.push(eq(memoryItems.category, category));
+      query = query.where(and(...conditions));
+    }
+    
+    return query.orderBy(desc(memoryItems.createdAt));
+  }
+
+  async createMemoryItem(item: InsertMemoryItem): Promise<MemoryItem> {
+    const [newItem] = await db.insert(memoryItems).values(item).returning();
+    return newItem;
+  }
+
+  async updateMemoryItem(id: number, item: Partial<InsertMemoryItem>): Promise<MemoryItem> {
+    const [updatedItem] = await db
+      .update(memoryItems)
+      .set({ ...item, updatedAt: new Date() })
+      .where(eq(memoryItems.id, id))
+      .returning();
+    return updatedItem;
+  }
+
+  async deleteMemoryItem(id: number): Promise<void> {
+    await db.delete(memoryItems).where(eq(memoryItems.id, id));
+  }
+
+  // Sales Items
+  async getSalesItem(id: number): Promise<SalesItem | undefined> {
+    const [item] = await db.select().from(salesItems).where(eq(salesItems.id, id));
+    return item || undefined;
+  }
+
+  async getSalesItems(category?: string): Promise<SalesItem[]> {
+    if (category) {
+      return await db.select().from(salesItems).where(eq(salesItems.category, category));
+    }
+    return await db.select().from(salesItems);
+  }
+
+  async createSalesItem(item: InsertSalesItem): Promise<SalesItem> {
+    const [newItem] = await db.insert(salesItems).values(item).returning();
+    return newItem;
+  }
+
+  async updateSalesItem(id: number, item: Partial<InsertSalesItem>): Promise<SalesItem> {
+    const [updatedItem] = await db
+      .update(salesItems)
+      .set({ ...item, updatedAt: new Date() })
+      .where(eq(salesItems.id, id))
+      .returning();
+    return updatedItem;
+  }
+
+  async deleteSalesItem(id: number): Promise<void> {
+    await db.delete(salesItems).where(eq(salesItems.id, id));
+  }
+
+  // Sales Transactions
+  async getSalesTransaction(id: number): Promise<SalesTransaction | undefined> {
+    const [transaction] = await db.select().from(salesTransactions).where(eq(salesTransactions.id, id));
+    return transaction || undefined;
+  }
+
+  async getSalesTransactions(itemId?: number, customerId?: number): Promise<SalesTransaction[]> {
+    let query = db.select().from(salesTransactions);
+    
+    if (itemId && customerId) {
+      query = query.where(and(eq(salesTransactions.itemId, itemId), eq(salesTransactions.customerId, customerId)));
+    } else if (itemId) {
+      query = query.where(eq(salesTransactions.itemId, itemId));
+    } else if (customerId) {
+      query = query.where(eq(salesTransactions.customerId, customerId));
+    }
+    
+    return await query.orderBy(desc(salesTransactions.createdAt));
+  }
+
+  async createSalesTransaction(transaction: InsertSalesTransaction): Promise<SalesTransaction> {
+    const [newTransaction] = await db.insert(salesTransactions).values(transaction).returning();
+    return newTransaction;
+  }
+
+  async updateSalesTransaction(id: number, transaction: Partial<InsertSalesTransaction>): Promise<SalesTransaction> {
+    const [updatedTransaction] = await db
+      .update(salesTransactions)
+      .set(transaction)
+      .where(eq(salesTransactions.id, id))
+      .returning();
+    return updatedTransaction;
+  }
+}
+
+export const storage = new DatabaseStorage();
