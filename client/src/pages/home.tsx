@@ -65,6 +65,10 @@ export default function Home() {
       case 'all-contacts':
         setActiveModal('all-contacts');
         break;
+      case 'create-new':
+        setActiveModal('store-dancer');
+        setSelectedContact(null);
+        break;
       case 'today-schedule':
         toast({
           title: "Today's Schedule",
@@ -265,10 +269,13 @@ export default function Home() {
       <ChatInterface onQuickAction={handleQuickAction} />
       
       <Dialog open={activeModal !== 'none'} onOpenChange={handleModalClose}>
-        <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-4xl max-h-[90vh] overflow-y-auto" aria-describedby="modal-description">
           <DialogHeader>
             <DialogTitle className="text-white">{getModalTitle()}</DialogTitle>
           </DialogHeader>
+          <div id="modal-description" className="sr-only">
+            {getModalTitle()} dialog window
+          </div>
           {renderModalContent()}
         </DialogContent>
       </Dialog>

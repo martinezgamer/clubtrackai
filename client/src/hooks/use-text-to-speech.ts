@@ -103,8 +103,16 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
           currentAudioRef.current = null;
         };
         
-        await audio.play();
-        return true;
+        try {
+          await audio.play();
+          return true;
+        } catch (playError) {
+          console.log('Audio play failed:', playError);
+          setIsSpeaking(false);
+          URL.revokeObjectURL(audioUrl);
+          currentAudioRef.current = null;
+          return false;
+        }
       }
     } catch (error) {
       console.log('Google TTS failed, falling back to browser TTS:', error);
@@ -148,8 +156,13 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
     }
 
     // Try Google Cloud TTS first, fallback to browser TTS
-    const googleTTSSuccess = await speakWithGoogleTTS(text);
-    if (!googleTTSSuccess) {
+    try {
+      const googleTTSSuccess = await speakWithGoogleTTS(text);
+      if (!googleTTSSuccess) {
+        speakWithBrowserTTS(text);
+      }
+    } catch (error) {
+      console.log('TTS failed, falling back to browser TTS:', error);
       speakWithBrowserTTS(text);
     }
   }, [speakWithGoogleTTS, speakWithBrowserTTS, isSupported]);
