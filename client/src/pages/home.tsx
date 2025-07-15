@@ -15,7 +15,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { contactsApi } from '@/lib/api';
 import { Search, Filter } from 'lucide-react';
 
-type ModalType = 'none' | 'store-dancer' | 'create-form' | 'add-event' | 'edit-contact' | 'all-contacts' | 'social-media';
+type ModalType = 'none' | 'store-dancer' | 'create-form' | 'add-event' | 'edit-contact' | 'all-contacts' | 'social-media' | 'settings';
 
 export default function Home() {
   const [activeModal, setActiveModal] = useState<ModalType>('none');
@@ -84,6 +84,9 @@ export default function Home() {
           title: "Sales Report",
           description: "Sales reporting feature will be available soon.",
         });
+        break;
+      case 'settings':
+        setActiveModal('settings');
         break;
       default:
         console.log('Unknown action:', action);
@@ -164,6 +167,8 @@ export default function Home() {
         return 'All Contacts';
       case 'social-media':
         return 'Social Media Generator';
+      case 'settings':
+        return 'System Settings';
       default:
         return '';
     }
@@ -263,6 +268,33 @@ export default function Home() {
         );
       case 'social-media':
         return <SocialMedia />;
+      case 'settings':
+        return (
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white">System Settings</h3>
+              <div className="space-y-3">
+                <div className="p-4 bg-gray-700 rounded-lg">
+                  <h4 className="font-medium text-white mb-2">FRIDAY AI Assistant</h4>
+                  <p className="text-sm text-gray-300">Voice recognition and text-to-speech enabled</p>
+                </div>
+                <div className="p-4 bg-gray-700 rounded-lg">
+                  <h4 className="font-medium text-white mb-2">Database</h4>
+                  <p className="text-sm text-gray-300">PostgreSQL connected and operational</p>
+                </div>
+                <div className="p-4 bg-gray-700 rounded-lg">
+                  <h4 className="font-medium text-white mb-2">WebSocket Connection</h4>
+                  <p className="text-sm text-gray-300">Real-time chat enabled</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Button onClick={handleModalClose} className="bg-blue-600 hover:bg-blue-700">
+                Close
+              </Button>
+            </div>
+          </div>
+        );
       default:
         return null;
     }
