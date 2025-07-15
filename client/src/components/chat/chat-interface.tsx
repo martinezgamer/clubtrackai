@@ -51,7 +51,7 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
   useEffect(() => {
     const welcomeMessage: ChatMessage = {
       id: 'welcome',
-      content: "Hey Bobby! I'm ready to help you manage the club and keep track of everything. What would you like to work on today?",
+      content: "Hey Bobby! Sam here, your club buddy. I'm not just running programs - I'm learning and growing with every conversation we have. Ready to tackle whatever the club throws at us today?",
       sender: 'ai',
       timestamp: new Date().toISOString(),
     };
