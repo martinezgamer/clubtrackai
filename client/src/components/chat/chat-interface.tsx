@@ -17,6 +17,8 @@ interface ChatMessage {
   content: string;
   sender: 'user' | 'ai';
   timestamp: string;
+  imageUrl?: string;
+  imageDescription?: string;
   metadata?: {
     type?: 'contact-profile' | 'form' | 'calendar' | 'social-media';
     data?: any;
@@ -50,9 +52,22 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
 
   // Add welcome message on mount
   useEffect(() => {
+    const welcomeMessages = [
+      "Hey! Sam here, ready to help you manage the club. What's the situation today?",
+      "What's up? Sam's online and ready to handle whatever you need - contacts, scheduling, you name it.",
+      "Hey there! Sam checking in. I'm your chill AI assistant for all the club management stuff. What's going on?",
+      "Yo! Sam here. Ready to help with dancers, schedules, forms, or whatever else you need sorted. What's up?",
+      "Hey! Sam's here and ready to roll. Need help with contacts, scheduling, or just want to chat about club operations?",
+      "What's good? Sam here, your laid-back AI buddy for club management. Ready to tackle whatever you throw at me.",
+      "Hey there! Sam reporting for duty. I'm here to help with all your club management needs. What's the plan today?",
+      "Sup! Sam here, ready to help you keep everything organized. Contacts, schedules, forms - I got you covered.",
+    ];
+    
+    const randomWelcome = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
+    
     const welcomeMessage: ChatMessage = {
       id: 'welcome',
-      content: "Hey there! Sam here, your chill AI buddy for club management. I'm all set up and ready to help with contacts, scheduling, forms, and whatever else you need. I can also whip up custom tables for any data you want to track. What's going on today?",
+      content: randomWelcome,
       sender: 'ai',
       timestamp: new Date().toISOString(),
     };
@@ -79,9 +94,7 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
             content: lastMessage.content,
             sender: 'ai',
             timestamp: lastMessage.timestamp || new Date().toISOString(),
-            messageType: lastMessage.messageType,
-            action: lastMessage.action,
-            data: lastMessage.data,
+            imageDescription: lastMessage.imageDescription,
             metadata: lastMessage.data ? {
               type: lastMessage.messageType,
               data: lastMessage.data
@@ -260,32 +273,63 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
     const file = event.target.files?.[0];
     if (file) {
       try {
-        // Create form data to send the file
-        const formData = new FormData();
-        formData.append('file', file);
-        
-        // Send the file to the chat with context
-        const fileMessage = `I'm uploading a file: ${file.name} (${file.type}, ${(file.size / 1024).toFixed(1)} KB). Please analyze it and help me with it.`;
-        
-        // Send the text message first
-        const userMessage: ChatMessage = {
-          id: `user-${Date.now()}`,
-          content: fileMessage,
-          sender: 'user',
-          timestamp: new Date().toISOString(),
-        };
-        
-        setMessages(prev => [...prev, userMessage]);
-        setInputValue('');
-        setIsTyping(true);
-        
-        // Send to WebSocket
-        sendMessage({
-          type: 'chat',
-          content: fileMessage,
-          file: file,
-          sessionId: 'default'
-        });
+        // Check if it's an image file
+        if (file.type.startsWith('image/')) {
+          // Handle image upload with reading capability
+          const reader = new FileReader();
+          reader.onload = async (e) => {
+            const imageData = e.target?.result as string;
+            const base64Data = imageData.split(',')[1]; // Remove data URL prefix
+            
+            const fileMessage = `I'm uploading an image: ${file.name}. Please read and analyze everything you see in it.`;
+            
+            // Send the text message first with image preview
+            const userMessage: ChatMessage = {
+              id: `user-${Date.now()}`,
+              content: fileMessage,
+              sender: 'user',
+              timestamp: new Date().toISOString(),
+              imageUrl: imageData, // Store the full data URL for preview
+            };
+            
+            setMessages(prev => [...prev, userMessage]);
+            setInputValue('');
+            setIsTyping(true);
+            
+            // Send image data to WebSocket
+            sendMessage({
+              type: 'image',
+              imageData: base64Data,
+              imageMimeType: file.type,
+              userMessage: fileMessage,
+              sessionId: 'default'
+            });
+          };
+          reader.readAsDataURL(file);
+        } else {
+          // Handle non-image files
+          const fileMessage = `I'm uploading a file: ${file.name} (${file.type}, ${(file.size / 1024).toFixed(1)} KB). Please help me with it.`;
+          
+          // Send the text message first
+          const userMessage: ChatMessage = {
+            id: `user-${Date.now()}`,
+            content: fileMessage,
+            sender: 'user',
+            timestamp: new Date().toISOString(),
+          };
+          
+          setMessages(prev => [...prev, userMessage]);
+          setInputValue('');
+          setIsTyping(true);
+          
+          // Send to WebSocket
+          sendMessage({
+            type: 'chat',
+            content: fileMessage,
+            file: file,
+            sessionId: 'default'
+          });
+        }
         
         toast({
           title: "File Uploaded",

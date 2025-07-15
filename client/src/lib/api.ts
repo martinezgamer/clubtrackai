@@ -203,6 +203,12 @@ export const imageApi = {
     formData.append('image', image);
     return apiRequest('POST', '/api/analyze-image', formData);
   },
+  
+  readImage: (image: File) => {
+    const formData = new FormData();
+    formData.append('image', image);
+    return apiRequest('POST', '/api/read-image', formData);
+  },
 };
 
 // Conversations API

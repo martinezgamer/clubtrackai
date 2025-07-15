@@ -12,6 +12,8 @@ interface MessageBubbleProps {
     content: string;
     sender: 'user' | 'ai';
     timestamp: string;
+    imageUrl?: string;
+    imageDescription?: string;
     metadata?: {
       type?: 'contact-profile' | 'form' | 'calendar' | 'social-media';
       data?: any;
@@ -171,6 +173,17 @@ export function MessageBubble({ message, onAction }: MessageBubbleProps) {
       
       <div className="flex-1 max-w-2xl">
         <div className={`rounded-lg p-4 ${isUser ? 'bg-green-500/20 ml-auto' : 'bg-gray-800'}`}>
+          {/* Display uploaded image if present */}
+          {message.imageUrl && (
+            <div className="mb-3">
+              <img 
+                src={message.imageUrl} 
+                alt="Uploaded image" 
+                className="max-w-full h-auto max-h-64 rounded-lg border border-gray-600"
+              />
+            </div>
+          )}
+          
           {message.metadata?.type === 'contact-profile' && message.metadata.data ? (
             <>
               <p className="text-white mb-4">{message.content}</p>
@@ -178,6 +191,14 @@ export function MessageBubble({ message, onAction }: MessageBubbleProps) {
             </>
           ) : (
             <p className="text-white whitespace-pre-wrap">{message.content}</p>
+          )}
+          
+          {/* Display image description if present */}
+          {message.imageDescription && (
+            <div className="mt-3 p-3 bg-gray-700 rounded-lg border-l-4 border-blue-500">
+              <p className="text-sm text-gray-300 font-medium">Image Analysis:</p>
+              <p className="text-white text-sm mt-1">{message.imageDescription}</p>
+            </div>
           )}
           
           {isAI && !message.metadata?.type && renderQuickActions()}

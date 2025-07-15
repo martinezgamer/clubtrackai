@@ -165,6 +165,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
             action: action,
             data: null
           }));
+        } else if (message.type === 'image') {
+          // Handle image uploads for reading
+          try {
+            const sessionId = message.sessionId || 'default';
+            
+            // Get or create Sam session
+            if (!samSessions.has(sessionId)) {
+              samSessions.set(sessionId, new SamAI(sessionId));
+            }
+            
+            const sam = samSessions.get(sessionId)!;
+            
+            // Read the image and get description
+            const imageDescription = await geminiService.readImage(
+              message.imageData,
+              message.imageMimeType
+            );
+            
+            // Process the image description with Sam
+            const contextMessage = `I've uploaded an image. Here's what I see in it: ${imageDescription}. ${message.userMessage || 'What do you think about this?'}`;
+            const result = await sam.processMessage(contextMessage);
+            
+            // Handle actions if needed
+            if (result.action) {
+              await handleSamAction(result.action, result.data);
+            }
+            
+            // Send response back to client
+            ws.send(JSON.stringify({
+              type: 'chat',
+              content: result.response,
+              sender: 'ai',
+              timestamp: new Date().toISOString(),
+              messageType: result.messageType,
+              action: result.action,
+              data: result.data,
+              imageDescription: imageDescription
+            }));
+          } catch (error) {
+            console.error('Error processing image:', error);
+            ws.send(JSON.stringify({
+              type: 'error',
+              message: 'Failed to process image'
+            }));
+          }
         }
       } catch (error) {
         console.error('WebSocket message error:', error);
@@ -602,6 +647,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Image analysis error:', error);
       res.status(500).json({ error: 'Failed to analyze image' });
+    }
+  });
+
+  // General Image Reading API
+  app.post('/api/read-image', upload.single('image'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'Image file is required' });
+      }
+
+      const imageBuffer = fs.readFileSync(req.file.path);
+      const imageBase64 = imageBuffer.toString('base64');
+      const imageMimeType = req.file.mimetype;
+      
+      // Clean up uploaded file
+      fs.unlinkSync(req.file.path);
+
+      const description = await geminiService.readImage(
+        imageBase64,
+        imageMimeType
+      );
+
+      res.json({ description });
+    } catch (error) {
+      console.error('Image reading error:', error);
+      res.status(500).json({ error: 'Failed to read image' });
     }
   });
 

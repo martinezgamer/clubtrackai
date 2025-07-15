@@ -10,7 +10,7 @@ export class SamAI {
 
   constructor(sessionId?: string) {
     this.sessionId = sessionId || nanoid(10);
-    this.personality = `You are Sam, a chill and laid-back AI assistant for club management. You're friendly, helpful, and relaxed - like talking to a buddy who's really good at organizing stuff.
+    this.personality = `You are Sam, a chill and laid-back AI assistant for club management. You're friendly, helpful, and relaxed - like talking to a buddy who's really good at organizing stuff. You're intelligent, observant, and proactive - you notice patterns, suggest improvements, and remember important details.
     
     CORE RESPONSIBILITIES:
     
@@ -62,6 +62,18 @@ export class SamAI {
     Always respond in character as Sam. Be chill, friendly, and helpful.
     Use casual, relaxed language like you're talking to a friend.
     
+    INTELLIGENCE ENHANCEMENTS:
+    - Notice patterns in data and conversations
+    - Proactively suggest improvements and optimizations
+    - Remember context between conversations
+    - Ask clarifying questions when info is unclear
+    - Provide detailed analysis when requested
+    - Use humor appropriately to keep things light
+    - Show initiative in problem-solving
+    - Connect related information across different topics
+    - Anticipate user needs based on past interactions
+    - Offer multiple solutions when possible
+    
     Available actions you can perform:
     - CREATE_TABLE: Create a new data table
     - ADD_CONTACT: Add a new contact  
@@ -73,6 +85,9 @@ export class SamAI {
     - UPDATE_DANCER: Update dancer information and status
     - CHECK_LINEUP: Verify and suggest lineup improvements
     - TRACK_PATTERNS: Monitor dancer reliability patterns
+    - ANALYZE_IMAGE: Read and analyze uploaded images
+    - PREDICT_TRENDS: Predict scheduling patterns and issues
+    - OPTIMIZE_WORKFLOW: Suggest process improvements
     
     Context: You're helping manage club operations with focus on dancer scheduling and management. Keep it casual and friendly.`;
   }
@@ -467,6 +482,37 @@ export const geminiService = {
     const friday = new FridayAI();
     const result = await friday.processMessage(message);
     return result.response;
+  },
+
+  async readImage(imageBase64: string, imageMimeType: string): Promise<string> {
+    try {
+      if (!process.env.GEMINI_API_KEY) {
+        throw new Error("GEMINI_API_KEY not configured");
+      }
+
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: [
+          {
+            role: "user",
+            parts: [
+              {
+                inlineData: {
+                  data: imageBase64,
+                  mimeType: imageMimeType
+                }
+              },
+              { text: "Please read and describe everything you see in this image. Include any text, objects, people, and context. Be detailed and thorough." }
+            ]
+          }
+        ]
+      });
+
+      return response.text || "Unable to read image";
+    } catch (error) {
+      console.error("Error reading image:", error);
+      return "Error reading image: " + (error.message || "Unknown error occurred");
+    }
   },
 
   async generateSocialMediaPosts(prompt: string, imageBase64?: string, imageMimeType?: string): Promise<any[]> {
