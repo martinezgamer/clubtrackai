@@ -4,7 +4,8 @@ import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { geminiService } from "./services/gemini";
 import { ttsService } from "./services/tts";
-import { insertContactSchema, insertFormSchema, insertCalendarEventSchema, insertMemoryItemSchema } from "@shared/schema";
+import { insertContactSchema, insertFormSchema, insertCalendarEventSchema, insertMemoryItemSchema, insertFollowUpSequenceSchema, insertFollowUpActionSchema } from "@shared/schema";
+import { followUpProcessor } from "./services/follow-up-processor";
 import { zfd } from "zod-form-data";
 import multer from "multer";
 import path from "path";
@@ -443,6 +444,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('TTS API error:', error);
       res.status(500).json({ error: 'TTS generation failed' });
+    }
+  });
+
+  // Follow-up Sequences API
+  app.get('/api/follow-up/sequences', async (req, res) => {
+    try {
+      const { formId } = req.query;
+      const sequences = formId 
+        ? await storage.getFollowUpSequencesByForm(parseInt(formId as string))
+        : [];
+      res.json(sequences);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch follow-up sequences' });
+    }
+  });
+
+  app.post('/api/follow-up/sequences', async (req, res) => {
+    try {
+      const validatedData = insertFollowUpSequenceSchema.parse(req.body);
+      const sequence = await storage.createFollowUpSequence(validatedData);
+      res.json(sequence);
+    } catch (error) {
+      res.status(400).json({ error: 'Invalid follow-up sequence data' });
+    }
+  });
+
+  app.put('/api/follow-up/sequences/:id', async (req, res) => {
+    try {
+      const sequence = await storage.updateFollowUpSequence(parseInt(req.params.id), req.body);
+      res.json(sequence);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update follow-up sequence' });
+    }
+  });
+
+  app.delete('/api/follow-up/sequences/:id', async (req, res) => {
+    try {
+      await storage.deleteFollowUpSequence(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to delete follow-up sequence' });
+    }
+  });
+
+  // Follow-up Actions API
+  app.get('/api/follow-up/actions', async (req, res) => {
+    try {
+      const { sequenceId } = req.query;
+      const actions = sequenceId 
+        ? await storage.getFollowUpActionsBySequence(parseInt(sequenceId as string))
+        : [];
+      res.json(actions);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch follow-up actions' });
+    }
+  });
+
+  app.post('/api/follow-up/actions', async (req, res) => {
+    try {
+      const validatedData = insertFollowUpActionSchema.parse(req.body);
+      const action = await storage.createFollowUpAction(validatedData);
+      res.json(action);
+    } catch (error) {
+      res.status(400).json({ error: 'Invalid follow-up action data' });
+    }
+  });
+
+  app.put('/api/follow-up/actions/:id', async (req, res) => {
+    try {
+      const action = await storage.updateFollowUpAction(parseInt(req.params.id), req.body);
+      res.json(action);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update follow-up action' });
+    }
+  });
+
+  app.delete('/api/follow-up/actions/:id', async (req, res) => {
+    try {
+      await storage.deleteFollowUpAction(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to delete follow-up action' });
+    }
+  });
+
+  // Follow-up Executions API
+  app.get('/api/follow-up/executions', async (req, res) => {
+    try {
+      const { responseId } = req.query;
+      const executions = responseId
+        ? await storage.getFollowUpExecutionsByResponse(parseInt(responseId as string))
+        : await storage.getPendingFollowUpExecutions();
+      res.json(executions);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch follow-up executions' });
+    }
+  });
+
+  // Manual trigger for follow-up processing
+  app.post('/api/follow-up/process', async (req, res) => {
+    try {
+      await followUpProcessor.processPendingFollowUps();
+      res.json({ success: true, message: 'Follow-up processing triggered' });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to process follow-ups' });
     }
   });
 

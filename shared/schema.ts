@@ -143,6 +143,47 @@ export const salesTransactions = pgTable("sales_transactions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Follow-up sequences table
+export const followUpSequences = pgTable("follow_up_sequences", {
+  id: serial("id").primaryKey(),
+  formId: integer("form_id").references(() => forms.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  triggerConditions: json("trigger_conditions").$type<Array<{
+    fieldId: string;
+    operator: string; // equals, contains, greater_than, less_than, not_equals
+    value: any;
+  }>>().notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Follow-up actions table
+export const followUpActions = pgTable("follow_up_actions", {
+  id: serial("id").primaryKey(),
+  sequenceId: integer("sequence_id").references(() => followUpSequences.id),
+  actionType: text("action_type").notNull(), // create_memory, schedule_event, send_message, create_task
+  actionData: json("action_data").$type<Record<string, any>>().notNull(),
+  delayMinutes: integer("delay_minutes").default(0), // delay before executing action
+  executionOrder: integer("execution_order").notNull(), // order of execution within sequence
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Follow-up executions table (tracks what has been executed)
+export const followUpExecutions = pgTable("follow_up_executions", {
+  id: serial("id").primaryKey(),
+  responseId: integer("response_id").references(() => formResponses.id),
+  sequenceId: integer("sequence_id").references(() => followUpSequences.id),
+  actionId: integer("action_id").references(() => followUpActions.id),
+  status: text("status").default("pending"), // pending, completed, failed
+  executedAt: timestamp("executed_at"),
+  scheduledFor: timestamp("scheduled_for"),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Define relations
 export const contactsRelations = relations(contacts, ({ many }) => ({
   conversations: many(conversations),
@@ -180,6 +221,38 @@ export const memoryItemsRelations = relations(memoryItems, ({ one }) => ({
   contact: one(contacts, {
     fields: [memoryItems.contactId],
     references: [contacts.id],
+  }),
+}));
+
+export const followUpSequencesRelations = relations(followUpSequences, ({ one, many }) => ({
+  form: one(forms, {
+    fields: [followUpSequences.formId],
+    references: [forms.id],
+  }),
+  actions: many(followUpActions),
+  executions: many(followUpExecutions),
+}));
+
+export const followUpActionsRelations = relations(followUpActions, ({ one, many }) => ({
+  sequence: one(followUpSequences, {
+    fields: [followUpActions.sequenceId],
+    references: [followUpSequences.id],
+  }),
+  executions: many(followUpExecutions),
+}));
+
+export const followUpExecutionsRelations = relations(followUpExecutions, ({ one }) => ({
+  response: one(formResponses, {
+    fields: [followUpExecutions.responseId],
+    references: [formResponses.id],
+  }),
+  sequence: one(followUpSequences, {
+    fields: [followUpExecutions.sequenceId],
+    references: [followUpSequences.id],
+  }),
+  action: one(followUpActions, {
+    fields: [followUpExecutions.actionId],
+    references: [followUpActions.id],
   }),
 }));
 
@@ -307,3 +380,36 @@ export type InsertSalesItem = z.infer<typeof insertSalesItemSchema>;
 
 export type SalesTransaction = typeof salesTransactions.$inferSelect;
 export type InsertSalesTransaction = z.infer<typeof insertSalesTransactionSchema>;
+
+export const insertFollowUpSequenceSchema = createInsertSchema(followUpSequences).pick({
+  formId: true,
+  name: true,
+  description: true,
+  triggerConditions: true,
+});
+
+export const insertFollowUpActionSchema = createInsertSchema(followUpActions).pick({
+  sequenceId: true,
+  actionType: true,
+  actionData: true,
+  delayMinutes: true,
+  executionOrder: true,
+});
+
+export const insertFollowUpExecutionSchema = createInsertSchema(followUpExecutions).pick({
+  responseId: true,
+  sequenceId: true,
+  actionId: true,
+  status: true,
+  scheduledFor: true,
+  errorMessage: true,
+});
+
+export type FollowUpSequence = typeof followUpSequences.$inferSelect;
+export type InsertFollowUpSequence = z.infer<typeof insertFollowUpSequenceSchema>;
+
+export type FollowUpAction = typeof followUpActions.$inferSelect;
+export type InsertFollowUpAction = z.infer<typeof insertFollowUpActionSchema>;
+
+export type FollowUpExecution = typeof followUpExecutions.$inferSelect;
+export type InsertFollowUpExecution = z.infer<typeof insertFollowUpExecutionSchema>;

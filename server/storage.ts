@@ -1,12 +1,15 @@
 import { 
   users, contacts, conversations, forms, formResponses, 
   calendarEvents, socialMediaContent, memoryItems, salesItems, salesTransactions,
+  followUpSequences, followUpActions, followUpExecutions,
   type User, type InsertUser, type Contact, type InsertContact,
   type Conversation, type InsertConversation, type Form, type InsertForm,
   type FormResponse, type InsertFormResponse, type CalendarEvent, type InsertCalendarEvent,
   type SocialMediaContent, type InsertSocialMediaContent,
   type MemoryItem, type InsertMemoryItem, type SalesItem, type InsertSalesItem,
-  type SalesTransaction, type InsertSalesTransaction
+  type SalesTransaction, type InsertSalesTransaction,
+  type FollowUpSequence, type InsertFollowUpSequence, type FollowUpAction, type InsertFollowUpAction,
+  type FollowUpExecution, type InsertFollowUpExecution
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, like, gte, lte } from "drizzle-orm";
@@ -77,6 +80,27 @@ export interface IStorage {
   getSalesTransactions(itemId?: number, customerId?: number): Promise<SalesTransaction[]>;
   createSalesTransaction(transaction: InsertSalesTransaction): Promise<SalesTransaction>;
   updateSalesTransaction(id: number, transaction: Partial<InsertSalesTransaction>): Promise<SalesTransaction>;
+
+  // Follow-up Sequences
+  getFollowUpSequence(id: number): Promise<FollowUpSequence | undefined>;
+  getFollowUpSequencesByForm(formId: number): Promise<FollowUpSequence[]>;
+  createFollowUpSequence(sequence: InsertFollowUpSequence): Promise<FollowUpSequence>;
+  updateFollowUpSequence(id: number, sequence: Partial<InsertFollowUpSequence>): Promise<FollowUpSequence>;
+  deleteFollowUpSequence(id: number): Promise<void>;
+
+  // Follow-up Actions
+  getFollowUpAction(id: number): Promise<FollowUpAction | undefined>;
+  getFollowUpActionsBySequence(sequenceId: number): Promise<FollowUpAction[]>;
+  createFollowUpAction(action: InsertFollowUpAction): Promise<FollowUpAction>;
+  updateFollowUpAction(id: number, action: Partial<InsertFollowUpAction>): Promise<FollowUpAction>;
+  deleteFollowUpAction(id: number): Promise<void>;
+
+  // Follow-up Executions
+  getFollowUpExecution(id: number): Promise<FollowUpExecution | undefined>;
+  getFollowUpExecutionsByResponse(responseId: number): Promise<FollowUpExecution[]>;
+  getPendingFollowUpExecutions(): Promise<FollowUpExecution[]>;
+  createFollowUpExecution(execution: InsertFollowUpExecution): Promise<FollowUpExecution>;
+  updateFollowUpExecution(id: number, execution: Partial<InsertFollowUpExecution>): Promise<FollowUpExecution>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -399,6 +423,95 @@ export class DatabaseStorage implements IStorage {
       .where(eq(salesTransactions.id, id))
       .returning();
     return updatedTransaction;
+  }
+
+  // Follow-up Sequences
+  async getFollowUpSequence(id: number): Promise<FollowUpSequence | undefined> {
+    const [sequence] = await db.select().from(followUpSequences).where(eq(followUpSequences.id, id));
+    return sequence || undefined;
+  }
+
+  async getFollowUpSequencesByForm(formId: number): Promise<FollowUpSequence[]> {
+    return await db.select().from(followUpSequences).where(eq(followUpSequences.formId, formId));
+  }
+
+  async createFollowUpSequence(sequence: InsertFollowUpSequence): Promise<FollowUpSequence> {
+    const [newSequence] = await db.insert(followUpSequences).values(sequence).returning();
+    return newSequence;
+  }
+
+  async updateFollowUpSequence(id: number, sequence: Partial<InsertFollowUpSequence>): Promise<FollowUpSequence> {
+    const [updatedSequence] = await db
+      .update(followUpSequences)
+      .set({ ...sequence, updatedAt: new Date() })
+      .where(eq(followUpSequences.id, id))
+      .returning();
+    return updatedSequence;
+  }
+
+  async deleteFollowUpSequence(id: number): Promise<void> {
+    await db.delete(followUpSequences).where(eq(followUpSequences.id, id));
+  }
+
+  // Follow-up Actions
+  async getFollowUpAction(id: number): Promise<FollowUpAction | undefined> {
+    const [action] = await db.select().from(followUpActions).where(eq(followUpActions.id, id));
+    return action || undefined;
+  }
+
+  async getFollowUpActionsBySequence(sequenceId: number): Promise<FollowUpAction[]> {
+    return await db.select().from(followUpActions).where(eq(followUpActions.sequenceId, sequenceId));
+  }
+
+  async createFollowUpAction(action: InsertFollowUpAction): Promise<FollowUpAction> {
+    const [newAction] = await db.insert(followUpActions).values(action).returning();
+    return newAction;
+  }
+
+  async updateFollowUpAction(id: number, action: Partial<InsertFollowUpAction>): Promise<FollowUpAction> {
+    const [updatedAction] = await db
+      .update(followUpActions)
+      .set({ ...action, updatedAt: new Date() })
+      .where(eq(followUpActions.id, id))
+      .returning();
+    return updatedAction;
+  }
+
+  async deleteFollowUpAction(id: number): Promise<void> {
+    await db.delete(followUpActions).where(eq(followUpActions.id, id));
+  }
+
+  // Follow-up Executions
+  async getFollowUpExecution(id: number): Promise<FollowUpExecution | undefined> {
+    const [execution] = await db.select().from(followUpExecutions).where(eq(followUpExecutions.id, id));
+    return execution || undefined;
+  }
+
+  async getFollowUpExecutionsByResponse(responseId: number): Promise<FollowUpExecution[]> {
+    return await db.select().from(followUpExecutions).where(eq(followUpExecutions.responseId, responseId));
+  }
+
+  async getPendingFollowUpExecutions(): Promise<FollowUpExecution[]> {
+    return await db.select().from(followUpExecutions).where(
+      and(
+        eq(followUpExecutions.status, 'pending'),
+        lte(followUpExecutions.scheduledFor, new Date())
+      )
+    );
+  }
+
+  async createFollowUpExecution(execution: InsertFollowUpExecution): Promise<FollowUpExecution> {
+    const [newExecution] = await db.insert(followUpExecutions).values(execution).returning();
+    return newExecution;
+  }
+
+  async updateFollowUpExecution(id: number, execution: Partial<InsertFollowUpExecution>): Promise<FollowUpExecution> {
+    const [updatedExecution] = await db
+      .update(followUpExecutions)
+      .set({ ...execution, updatedAt: new Date() })
+      .where(eq(followUpExecutions.id, id))
+      .returning();
+    return updatedExecution;
   }
 }
 

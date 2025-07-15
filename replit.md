@@ -83,6 +83,15 @@ AI personality: Iron Man Friday - sophisticated, slightly sarcastic, but helpful
   - Transaction history
   - Customer purchase tracking
 
+### 7. Automated Follow-Up Sequences
+- **Purpose**: Create automated responses and actions based on form submissions
+- **Features**:
+  - Define trigger conditions based on form field values
+  - Multiple action types: send messages, create memories, schedule events, generate social content
+  - Delay scheduling for timed follow-ups
+  - Execution tracking and error handling
+  - AI-powered content generation for personalized responses
+
 ## Data Flow
 
 ### Real-time Communication
