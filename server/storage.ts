@@ -127,16 +127,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getContacts(filters?: { role?: string; status?: string }): Promise<Contact[]> {
-    let query = db.select().from(contacts);
-    
     if (filters?.role || filters?.status) {
       const conditions = [];
       if (filters.role) conditions.push(eq(contacts.role, filters.role));
       if (filters.status) conditions.push(eq(contacts.status, filters.status));
-      query = query.where(and(...conditions));
+      
+      return await db.select().from(contacts)
+        .where(and(...conditions))
+        .orderBy(desc(contacts.lastContact), contacts.name);
     }
     
-    return query.orderBy(desc(contacts.lastContact), contacts.name);
+    return await db.select().from(contacts)
+      .orderBy(desc(contacts.lastContact), contacts.name);
   }
 
   async createContact(contact: InsertContact): Promise<Contact> {
@@ -158,7 +160,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async searchContacts(query: string): Promise<Contact[]> {
-    return db.select().from(contacts).where(
+    return await db.select().from(contacts).where(
       or(
         like(contacts.name, `%${query}%`),
         like(contacts.nickname, `%${query}%`),
@@ -174,13 +176,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getConversationsByContact(contactId: number): Promise<Conversation[]> {
-    return db.select().from(conversations)
+    return await db.select().from(conversations)
       .where(eq(conversations.contactId, contactId))
       .orderBy(desc(conversations.createdAt));
   }
 
   async getRecentConversations(limit: number = 50): Promise<Conversation[]> {
-    return db.select().from(conversations)
+    return await db.select().from(conversations)
       .orderBy(desc(conversations.createdAt))
       .limit(limit);
   }
@@ -197,22 +199,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getForms(includeInactive: boolean = false): Promise<Form[]> {
-    let query = db.select().from(forms);
     if (!includeInactive) {
-      query = query.where(eq(forms.isActive, true));
+      return await db.select().from(forms)
+        .where(eq(forms.isActive, true))
+        .orderBy(desc(forms.createdAt));
     }
-    return query.orderBy(desc(forms.createdAt));
+    return await db.select().from(forms)
+      .orderBy(desc(forms.createdAt));
   }
 
   async createForm(form: InsertForm): Promise<Form> {
-    const [newForm] = await db.insert(forms).values(form).returning();
+    const [newForm] = await db.insert(forms).values({
+      ...form,
+      fields: form.fields as any // Type assertion for JSON field
+    }).returning();
     return newForm;
   }
 
   async updateForm(id: number, form: Partial<InsertForm>): Promise<Form> {
+    const updateData: any = { ...form, updatedAt: new Date() };
+    if (form.fields) {
+      updateData.fields = form.fields as any; // Type assertion for JSON field
+    }
     const [updatedForm] = await db
       .update(forms)
-      .set({ ...form, updatedAt: new Date() })
+      .set(updateData)
       .where(eq(forms.id, id))
       .returning();
     return updatedForm;
@@ -229,7 +240,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getFormResponses(formId: number): Promise<FormResponse[]> {
-    return db.select().from(formResponses)
+    return await db.select().from(formResponses)
       .where(eq(formResponses.formId, formId))
       .orderBy(desc(formResponses.submittedAt));
   }
@@ -246,29 +257,37 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCalendarEvents(startDate?: Date, endDate?: Date): Promise<CalendarEvent[]> {
-    let query = db.select().from(calendarEvents);
-    
     if (startDate && endDate) {
-      query = query.where(
-        and(
-          gte(calendarEvents.startTime, startDate),
-          lte(calendarEvents.endTime, endDate)
+      return await db.select().from(calendarEvents)
+        .where(
+          and(
+            gte(calendarEvents.startTime, startDate),
+            lte(calendarEvents.endTime, endDate)
+          )
         )
-      );
+        .orderBy(calendarEvents.startTime);
     }
     
-    return query.orderBy(calendarEvents.startTime);
+    return await db.select().from(calendarEvents)
+      .orderBy(calendarEvents.startTime);
   }
 
   async createCalendarEvent(event: InsertCalendarEvent): Promise<CalendarEvent> {
-    const [newEvent] = await db.insert(calendarEvents).values(event).returning();
+    const [newEvent] = await db.insert(calendarEvents).values({
+      ...event,
+      attendees: event.attendees as any // Type assertion for JSON array field
+    }).returning();
     return newEvent;
   }
 
   async updateCalendarEvent(id: number, event: Partial<InsertCalendarEvent>): Promise<CalendarEvent> {
+    const updateData: any = { ...event, updatedAt: new Date() };
+    if (event.attendees) {
+      updateData.attendees = event.attendees as any; // Type assertion for JSON array field
+    }
     const [updatedEvent] = await db
       .update(calendarEvents)
-      .set({ ...event, updatedAt: new Date() })
+      .set(updateData)
       .where(eq(calendarEvents.id, id))
       .returning();
     return updatedEvent;
@@ -330,27 +349,36 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getMemoryItems(contactId?: number, category?: string): Promise<MemoryItem[]> {
-    let query = db.select().from(memoryItems);
-    
     if (contactId || category) {
       const conditions = [];
       if (contactId) conditions.push(eq(memoryItems.contactId, contactId));
       if (category) conditions.push(eq(memoryItems.category, category));
-      query = query.where(and(...conditions));
+      
+      return await db.select().from(memoryItems)
+        .where(and(...conditions))
+        .orderBy(desc(memoryItems.createdAt));
     }
     
-    return query.orderBy(desc(memoryItems.createdAt));
+    return await db.select().from(memoryItems)
+      .orderBy(desc(memoryItems.createdAt));
   }
 
   async createMemoryItem(item: InsertMemoryItem): Promise<MemoryItem> {
-    const [newItem] = await db.insert(memoryItems).values(item).returning();
+    const [newItem] = await db.insert(memoryItems).values({
+      ...item,
+      tags: item.tags as any // Type assertion for JSON array field
+    }).returning();
     return newItem;
   }
 
   async updateMemoryItem(id: number, item: Partial<InsertMemoryItem>): Promise<MemoryItem> {
+    const updateData: any = { ...item, updatedAt: new Date() };
+    if (item.tags) {
+      updateData.tags = item.tags as any; // Type assertion for JSON array field
+    }
     const [updatedItem] = await db
       .update(memoryItems)
-      .set({ ...item, updatedAt: new Date() })
+      .set(updateData)
       .where(eq(memoryItems.id, id))
       .returning();
     return updatedItem;
@@ -398,17 +426,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSalesTransactions(itemId?: number, customerId?: number): Promise<SalesTransaction[]> {
-    let query = db.select().from(salesTransactions);
-    
     if (itemId && customerId) {
-      query = query.where(and(eq(salesTransactions.itemId, itemId), eq(salesTransactions.customerId, customerId)));
+      return await db.select().from(salesTransactions)
+        .where(and(eq(salesTransactions.itemId, itemId), eq(salesTransactions.customerId, customerId)))
+        .orderBy(desc(salesTransactions.createdAt));
     } else if (itemId) {
-      query = query.where(eq(salesTransactions.itemId, itemId));
+      return await db.select().from(salesTransactions)
+        .where(eq(salesTransactions.itemId, itemId))
+        .orderBy(desc(salesTransactions.createdAt));
     } else if (customerId) {
-      query = query.where(eq(salesTransactions.customerId, customerId));
+      return await db.select().from(salesTransactions)
+        .where(eq(salesTransactions.customerId, customerId))
+        .orderBy(desc(salesTransactions.createdAt));
     }
     
-    return await query.orderBy(desc(salesTransactions.createdAt));
+    return await db.select().from(salesTransactions)
+      .orderBy(desc(salesTransactions.createdAt));
   }
 
   async createSalesTransaction(transaction: InsertSalesTransaction): Promise<SalesTransaction> {
@@ -436,14 +469,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createFollowUpSequence(sequence: InsertFollowUpSequence): Promise<FollowUpSequence> {
-    const [newSequence] = await db.insert(followUpSequences).values(sequence).returning();
+    const [newSequence] = await db.insert(followUpSequences).values({
+      ...sequence,
+      triggerConditions: sequence.triggerConditions as any // Type assertion for JSON array field
+    }).returning();
     return newSequence;
   }
 
   async updateFollowUpSequence(id: number, sequence: Partial<InsertFollowUpSequence>): Promise<FollowUpSequence> {
+    const updateData: any = { ...sequence };
+    if (sequence.triggerConditions) {
+      updateData.triggerConditions = sequence.triggerConditions as any; // Type assertion for JSON array field
+    }
     const [updatedSequence] = await db
       .update(followUpSequences)
-      .set({ ...sequence, updatedAt: new Date() })
+      .set(updateData)
       .where(eq(followUpSequences.id, id))
       .returning();
     return updatedSequence;
@@ -469,9 +509,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateFollowUpAction(id: number, action: Partial<InsertFollowUpAction>): Promise<FollowUpAction> {
+    const updateData: any = { ...action };
+    if (action.actionData) {
+      updateData.actionData = action.actionData as any; // Type assertion for JSON field
+    }
     const [updatedAction] = await db
       .update(followUpActions)
-      .set({ ...action, updatedAt: new Date() })
+      .set(updateData)
       .where(eq(followUpActions.id, id))
       .returning();
     return updatedAction;
@@ -506,9 +550,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateFollowUpExecution(id: number, execution: Partial<InsertFollowUpExecution>): Promise<FollowUpExecution> {
+    const updateData: any = { ...execution };
     const [updatedExecution] = await db
       .update(followUpExecutions)
-      .set({ ...execution, updatedAt: new Date() })
+      .set(updateData)
       .where(eq(followUpExecutions.id, id))
       .returning();
     return updatedExecution;
