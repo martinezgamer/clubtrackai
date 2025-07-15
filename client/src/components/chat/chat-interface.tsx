@@ -57,11 +57,15 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
     };
     setMessages([welcomeMessage]);
     
-    // Auto-speak the welcome message
-    setTimeout(() => {
-      speak(welcomeMessage.content);
+    // Auto-speak the welcome message only once
+    const timer = setTimeout(() => {
+      if (!isSpeaking) {
+        speak(welcomeMessage.content);
+      }
     }, 1000); // Delay to ensure page is loaded
-  }, [speak]);
+    
+    return () => clearTimeout(timer);
+  }, []); // Remove speak dependency to avoid re-runs
 
   // Handle WebSocket messages
   useEffect(() => {
@@ -77,9 +81,9 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
         };
         setMessages(prev => [...prev, aiMessage]);
         
-        // Auto-speak AI responses for hands-free operation
-        if (aiMessage.content) {
-          speak(aiMessage.content);
+        // Auto-speak AI responses for hands-free operation (only if not already speaking)
+        if (aiMessage.content && !isSpeaking) {
+          setTimeout(() => speak(aiMessage.content), 100); // Small delay to avoid conflicts
         }
       } else if (lastMessage.type === 'error') {
         setIsTyping(false);
