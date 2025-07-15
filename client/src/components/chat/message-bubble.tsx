@@ -2,8 +2,9 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Bot, User, Phone, Calendar, Edit, Copy, ExternalLink } from 'lucide-react';
+import { Bot, User, Phone, Calendar, Edit, Copy, ExternalLink, Volume2, VolumeX } from 'lucide-react';
 import { format } from 'date-fns';
+import { useTextToSpeech } from '@/hooks/use-text-to-speech';
 
 interface MessageBubbleProps {
   message: {
@@ -22,6 +23,8 @@ interface MessageBubbleProps {
 export function MessageBubble({ message, onAction }: MessageBubbleProps) {
   const isAI = message.sender === 'ai';
   const isUser = message.sender === 'user';
+  
+  const { speak, stop, isSpeaking, isSupported } = useTextToSpeech();
 
   const handleCopy = async (text: string) => {
     try {
@@ -29,6 +32,14 @@ export function MessageBubble({ message, onAction }: MessageBubbleProps) {
       // You could show a toast here
     } catch (err) {
       console.error('Failed to copy text:', err);
+    }
+  };
+
+  const handleSpeak = () => {
+    if (isSpeaking) {
+      stop();
+    } else {
+      speak(message.content);
     }
   };
 
@@ -171,9 +182,9 @@ export function MessageBubble({ message, onAction }: MessageBubbleProps) {
           
           {isAI && !message.metadata?.type && renderQuickActions()}
           
-          {/* Copy button for AI messages */}
+          {/* Copy and Speaker buttons for AI messages */}
           {isAI && (
-            <div className="flex items-center justify-between mt-3">
+            <div className="flex items-center gap-2 mt-3">
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -183,6 +194,17 @@ export function MessageBubble({ message, onAction }: MessageBubbleProps) {
                 <Copy className="w-4 h-4 mr-1" />
                 Copy
               </Button>
+              {isSupported && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className={`text-gray-400 hover:text-white ${isSpeaking ? 'text-blue-400' : ''}`}
+                  onClick={handleSpeak}
+                >
+                  {isSpeaking ? <VolumeX className="w-4 h-4 mr-1" /> : <Volume2 className="w-4 h-4 mr-1" />}
+                  {isSpeaking ? 'Stop' : 'Listen'}
+                </Button>
+              )}
             </div>
           )}
         </div>

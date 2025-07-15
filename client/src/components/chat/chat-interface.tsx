@@ -5,6 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { useWebSocket } from '@/hooks/use-websocket';
 import { useVoiceRecognition } from '@/hooks/use-voice-recognition';
+import { useTextToSpeech } from '@/hooks/use-text-to-speech';
 import { MessageBubble } from './message-bubble';
 import { 
   Mic, MicOff, Camera, Paperclip, Send, Calendar, 
@@ -43,6 +44,8 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
     resetTranscript,
     isSupported: voiceSupported 
   } = useVoiceRecognition();
+  
+  const { speak, stop, isSpeaking } = useTextToSpeech();
 
   // Add welcome message on mount
   useEffect(() => {
@@ -53,7 +56,12 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
       timestamp: new Date().toISOString(),
     };
     setMessages([welcomeMessage]);
-  }, []);
+    
+    // Auto-speak the welcome message
+    setTimeout(() => {
+      speak(welcomeMessage.content);
+    }, 1000); // Delay to ensure page is loaded
+  }, [speak]);
 
   // Handle WebSocket messages
   useEffect(() => {
@@ -68,6 +76,11 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
           metadata: lastMessage.metadata,
         };
         setMessages(prev => [...prev, aiMessage]);
+        
+        // Auto-speak AI responses for hands-free operation
+        if (aiMessage.content) {
+          speak(aiMessage.content);
+        }
       } else if (lastMessage.type === 'error') {
         setIsTyping(false);
         toast({
