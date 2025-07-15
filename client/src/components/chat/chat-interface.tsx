@@ -7,9 +7,11 @@ import { useWebSocket } from '@/hooks/use-websocket';
 import { useVoiceRecognition } from '@/hooks/use-voice-recognition';
 import { useTextToSpeech } from '@/hooks/use-text-to-speech';
 import { MessageBubble } from './message-bubble';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { 
   Mic, MicOff, Camera, Paperclip, Send, Calendar, 
-  Users, TrendingUp, FileText, Loader2
+  Users, TrendingUp, FileText, Loader2, Image,
+  File, ChevronDown
 } from 'lucide-react';
 
 interface ChatMessage {
@@ -35,7 +37,8 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
   const [isTyping, setIsTyping] = useState(false);
   const [isContinuousMode, setIsContinuousMode] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const documentInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const { lastMessage, sendMessage, readyState } = useWebSocket('/ws');
@@ -265,11 +268,15 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
     };
   }, [isListening, isSpeaking, startListening, stopListening, stop]);
 
-  const handleFileUpload = () => {
-    fileInputRef.current?.click();
+  const handleImageUpload = () => {
+    imageInputRef.current?.click();
   };
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDocumentUpload = () => {
+    documentInputRef.current?.click();
+  };
+
+  const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       try {
@@ -337,8 +344,8 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
         });
         
         // Reset file input
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
+        if (imageInputRef.current) {
+          imageInputRef.current.value = '';
         }
         
       } catch (error) {
@@ -346,6 +353,84 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
         toast({
           title: "Upload Failed",
           description: "Failed to upload file. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const handleDocumentChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      try {
+        // Check if it's a supported document type
+        const supportedTypes = ['application/pdf', 'text/plain', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+        if (!supportedTypes.includes(file.type)) {
+          toast({
+            title: "Unsupported File Type",
+            description: "Please upload PDF, DOC, DOCX, or TXT files only.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          const fileData = e.target?.result;
+          let base64Data = '';
+          
+          if (typeof fileData === 'string') {
+            base64Data = fileData.split(',')[1]; // Remove data URL prefix
+          } else if (fileData instanceof ArrayBuffer) {
+            base64Data = btoa(String.fromCharCode(...new Uint8Array(fileData)));
+          }
+          
+          const fileMessage = `I'm uploading a document: ${file.name}. Please process and analyze the content.`;
+          
+          // Send the text message first
+          const userMessage: ChatMessage = {
+            id: `user-${Date.now()}`,
+            content: fileMessage,
+            sender: 'user',
+            timestamp: new Date().toISOString(),
+          };
+          
+          setMessages(prev => [...prev, userMessage]);
+          setInputValue('');
+          setIsTyping(true);
+          
+          // Send document data to WebSocket
+          sendMessage({
+            type: 'document',
+            documentData: base64Data,
+            documentMimeType: file.type,
+            documentName: file.name,
+            userMessage: fileMessage,
+            sessionId: 'default'
+          });
+        };
+        
+        if (file.type === 'application/pdf') {
+          reader.readAsArrayBuffer(file);
+        } else {
+          reader.readAsDataURL(file);
+        }
+        
+        toast({
+          title: "Document Uploaded",
+          description: `Successfully uploaded ${file.name}`,
+        });
+        
+        // Reset file input
+        if (documentInputRef.current) {
+          documentInputRef.current.value = '';
+        }
+        
+      } catch (error) {
+        console.error('Error uploading document:', error);
+        toast({
+          title: "Upload Failed",
+          description: "Failed to upload document. Please try again.",
           variant: "destructive",
         });
       }
@@ -410,22 +495,28 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
                 {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
               </Button>
             )}
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="text-gray-400 hover:text-white"
-              onClick={handleFileUpload}
-            >
-              <Camera className="w-4 h-4" />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="text-gray-400 hover:text-white"
-              onClick={handleFileUpload}
-            >
-              <Paperclip className="w-4 h-4" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-gray-400 hover:text-white"
+                >
+                  <Paperclip className="w-4 h-4 mr-1" />
+                  <ChevronDown className="w-3 h-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={handleImageUpload}>
+                  <Image className="w-4 h-4 mr-2" />
+                  Upload Image
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDocumentUpload}>
+                  <File className="w-4 h-4 mr-2" />
+                  Upload Document
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
@@ -472,14 +563,28 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
               className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 pr-20"
             />
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleFileUpload}
-                className="text-gray-400 hover:text-white"
-              >
-                <Paperclip className="w-4 h-4" />
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    className="text-gray-400 hover:text-white"
+                  >
+                    <Paperclip className="w-4 h-4 mr-1" />
+                    <ChevronDown className="w-3 h-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={handleImageUpload}>
+                    <Image className="w-4 h-4 mr-2" />
+                    Upload Image
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleDocumentUpload}>
+                    <File className="w-4 h-4 mr-2" />
+                    Upload Document
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               {voiceSupported && (
                 <Button 
                   variant="ghost" 
@@ -575,12 +680,19 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
         </div>
       </div>
 
-      {/* Hidden file input */}
+      {/* Hidden file inputs */}
       <input
-        ref={fileInputRef}
         type="file"
-        accept="image/*,audio/*,.pdf,.doc,.docx"
-        onChange={handleFileChange}
+        ref={imageInputRef}
+        onChange={handleImageChange}
+        accept="image/*"
+        className="hidden"
+      />
+      <input
+        type="file"
+        ref={documentInputRef}
+        onChange={handleDocumentChange}
+        accept=".pdf,.doc,.docx,.txt"
         className="hidden"
       />
     </div>

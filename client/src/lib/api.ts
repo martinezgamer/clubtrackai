@@ -223,6 +223,13 @@ export const imageApi = {
     formData.append('image', image);
     return apiRequest('POST', '/api/test-cloud-vision', formData);
   },
+  
+  // Process document with Document AI
+  processDocument: (document: File) => {
+    const formData = new FormData();
+    formData.append('document', document);
+    return apiRequest('POST', '/api/process-document', formData);
+  },
 };
 
 // Conversations API

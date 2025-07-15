@@ -63,6 +63,12 @@ AI personality: Sam - chill, laid-back, and friendly AI assistant. Casual and re
     - Logo and landmark recognition
     - Label detection with confidence scores
     - Document text analysis for structured content
+  - **Document Processing**: Google Document AI integration for:
+    - PDF document analysis and text extraction
+    - Structured document understanding
+    - Support for various document formats (PDF, DOC, DOCX, TXT)
+    - Intelligent document content summarization
+  - **File Upload System**: Dropdown menu interface for organized file uploads
   - **Varied Welcome Messages**: Randomized greeting messages to prevent repetitive interactions
 
 ### 3. Form Builder

@@ -210,6 +210,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
               message: 'Failed to process image'
             }));
           }
+        } else if (message.type === 'document') {
+          // Handle document uploads for processing
+          try {
+            const sessionId = message.sessionId || 'default';
+            
+            // Get or create Sam session
+            if (!samSessions.has(sessionId)) {
+              samSessions.set(sessionId, new SamAI(sessionId));
+            }
+            
+            const sam = samSessions.get(sessionId)!;
+            
+            // Process the document
+            const documentAnalysis = await geminiService.processDocumentWithAI(
+              message.documentData,
+              message.documentMimeType,
+              message.documentName
+            );
+            
+            // Process the document analysis with Sam
+            const contextMessage = `I've uploaded a document (${message.documentName}). Here's the analysis: ${documentAnalysis}. ${message.userMessage || 'What do you think about this document?'}`;
+            const result = await sam.processMessage(contextMessage);
+            
+            // Handle actions if needed
+            if (result.action) {
+              await handleSamAction(result.action, result.data);
+            }
+            
+            // Send response back to client
+            ws.send(JSON.stringify({
+              type: 'chat',
+              content: result.response,
+              sender: 'ai',
+              timestamp: new Date().toISOString(),
+              messageType: result.messageType,
+              action: result.action,
+              data: result.data,
+              documentAnalysis: documentAnalysis
+            }));
+          } catch (error) {
+            console.error('Error processing document:', error);
+            ws.send(JSON.stringify({
+              type: 'error',
+              message: 'Failed to process document'
+            }));
+          }
         }
       } catch (error) {
         console.error('WebSocket message error:', error);
@@ -717,6 +763,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('OCR error:', error);
       res.status(500).json({ error: 'Failed to extract text from image' });
+    }
+  });
+
+  // Document processing endpoint
+  app.post('/api/process-document', upload.single('document'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'Document file is required' });
+      }
+
+      const documentBuffer = fs.readFileSync(req.file.path);
+      const documentBase64 = documentBuffer.toString('base64');
+      
+      // Clean up uploaded file
+      fs.unlinkSync(req.file.path);
+
+      const documentAnalysis = await geminiService.processDocumentWithAI(
+        documentBase64,
+        req.file.mimetype,
+        req.file.originalname
+      );
+
+      res.json({ analysis: documentAnalysis });
+    } catch (error) {
+      console.error('Document processing error:', error);
+      res.status(500).json({ error: 'Failed to process document' });
     }
   });
 

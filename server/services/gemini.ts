@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { ImageAnnotatorClient } from '@google-cloud/vision';
+import { DocumentProcessorServiceClient } from '@google-cloud/documentai';
 import { storage } from "../storage";
 import { nanoid } from "nanoid";
 
@@ -7,6 +8,13 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 // Initialize Google Cloud Vision client
 const visionClient = new ImageAnnotatorClient({
+  keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS || undefined,
+  projectId: process.env.GOOGLE_CLOUD_PROJECT_ID || undefined,
+  credentials: process.env.GOOGLE_CLOUD_CREDENTIALS ? JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS) : undefined
+});
+
+// Initialize Google Document AI client
+const documentClient = new DocumentProcessorServiceClient({
   keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS || undefined,
   projectId: process.env.GOOGLE_CLOUD_PROJECT_ID || undefined,
   credentials: process.env.GOOGLE_CLOUD_CREDENTIALS ? JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS) : undefined
@@ -743,6 +751,67 @@ export const geminiService = {
     } catch (error) {
       console.error("OCR error:", error);
       return "Failed to extract text from image";
+    }
+  },
+
+  // Document AI processing for PDF and other documents
+  async processDocumentWithAI(documentBase64: string, mimeType: string, fileName: string): Promise<string> {
+    try {
+      // Try to process with Document AI first if available
+      if (process.env.GOOGLE_CLOUD_PROJECT_ID) {
+        const processorName = `projects/${process.env.GOOGLE_CLOUD_PROJECT_ID}/locations/us/processors/general`;
+        const documentBuffer = Buffer.from(documentBase64, 'base64');
+        
+        const request = {
+          name: processorName,
+          rawDocument: {
+            content: documentBuffer,
+            mimeType: mimeType,
+          },
+        };
+
+        try {
+          const [result] = await documentClient.processDocument(request);
+          const document = result.document;
+          
+          if (document && document.text) {
+            return `📄 **Document AI Analysis of ${fileName}:**\n\n${document.text}`;
+          }
+        } catch (docAIError) {
+          console.log("Document AI not available, falling back to text extraction");
+        }
+      }
+      
+      // Fallback to basic text extraction for supported formats
+      if (mimeType === 'text/plain') {
+        const textContent = Buffer.from(documentBase64, 'base64').toString('utf-8');
+        return `📝 **Text Content of ${fileName}:**\n\n${textContent}`;
+      }
+      
+      // For PDFs and other formats, use Gemini for analysis
+      if (mimeType === 'application/pdf') {
+        const contents = [
+          {
+            inlineData: {
+              data: documentBase64,
+              mimeType: mimeType,
+            },
+          },
+          `Please analyze this PDF document "${fileName}" and extract the key information, text content, and provide a summary.`,
+        ];
+
+        const response = await ai.models.generateContent({
+          model: "gemini-2.5-pro",
+          contents: contents,
+        });
+
+        return `📄 **PDF Analysis of ${fileName}:**\n\n${response.text || "Unable to analyze PDF"}`;
+      }
+      
+      return `Document "${fileName}" received but format not fully supported for processing. Please try PDF or text files.`;
+    } catch (error) {
+      console.error("Document processing error:", error);
+      return `Failed to process document "${fileName}": ${error.message || "Unknown error"}`;
     }
   }
 };
