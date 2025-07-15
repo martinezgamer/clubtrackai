@@ -31,6 +31,7 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isContinuousMode, setIsContinuousMode] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -51,7 +52,7 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
   useEffect(() => {
     const welcomeMessage: ChatMessage = {
       id: 'welcome',
-      content: "Hey Bobby! Sam here, your club buddy. I'm not just running programs - I'm learning and growing with every conversation we have. Ready to tackle whatever the club throws at us today?",
+      content: "Good morning, Bobby. FRIDAY here, your club management AI. I'm fully operational and ready to assist with contacts, scheduling, forms, and whatever else you need. I can also create dynamic tables for any data you want to track. What's on the agenda today?",
       sender: 'ai',
       timestamp: new Date().toISOString(),
     };
@@ -71,14 +72,20 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
   useEffect(() => {
     if (lastMessage) {
       try {
-        if (lastMessage.type === 'chat_response') {
+        if (lastMessage.type === 'chat') {
           setIsTyping(false);
           const aiMessage: ChatMessage = {
             id: `ai-${Date.now()}`,
             content: lastMessage.content,
             sender: 'ai',
             timestamp: lastMessage.timestamp || new Date().toISOString(),
-            metadata: lastMessage.metadata,
+            messageType: lastMessage.messageType,
+            action: lastMessage.action,
+            data: lastMessage.data,
+            metadata: lastMessage.data ? {
+              type: lastMessage.messageType,
+              data: lastMessage.data
+            } : undefined
           };
           setMessages(prev => [...prev, aiMessage]);
           
@@ -116,9 +123,8 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
   useEffect(() => {
     if (transcript) {
       setInputValue(transcript);
-      resetTranscript();
     }
-  }, [transcript, resetTranscript]);
+  }, [transcript]);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -145,6 +151,7 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
       sendMessage({
         type: 'chat',
         content: inputValue,
+        sessionId: 'bobby-session',
         history: messages.slice(-10), // Send last 10 messages for context
       });
     } catch (error) {
@@ -170,10 +177,80 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
   const handleVoiceToggle = () => {
     if (isListening) {
       stopListening();
+      // If we have transcript, send it immediately
+      if (transcript.trim()) {
+        setInputValue(transcript);
+        resetTranscript();
+        // Auto-send the message after a short delay
+        setTimeout(() => {
+          handleSendMessage();
+        }, 100);
+      }
     } else {
+      // Stop any current speech before starting to listen
+      if (isSpeaking) {
+        stop();
+      }
       startListening();
     }
   };
+
+  // Auto-send voice input when user stops speaking
+  useEffect(() => {
+    if (transcript && !isListening && transcript.trim().length > 0) {
+      setInputValue(transcript);
+      // Auto-send after user stops speaking
+      const timer = setTimeout(() => {
+        if (transcript.trim()) {
+          handleSendMessage();
+          if (isContinuousMode) {
+            // In continuous mode, start listening again after AI response
+            setTimeout(() => {
+              if (!isSpeaking) {
+                startListening();
+              }
+            }, 2000);
+          }
+        }
+        resetTranscript();
+      }, 1500); // 1.5 second delay to ensure user is done speaking
+      
+      return () => clearTimeout(timer);
+    }
+  }, [transcript, isListening, isContinuousMode, isSpeaking, startListening]);
+
+  // Keyboard shortcuts for voice activation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Spacebar for push-to-talk (when not typing in input)
+      if (e.code === 'Space' && e.target === document.body) {
+        e.preventDefault();
+        if (!isListening) {
+          if (isSpeaking) {
+            stop();
+          }
+          startListening();
+        }
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && e.target === document.body) {
+        e.preventDefault();
+        if (isListening) {
+          stopListening();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [isListening, isSpeaking, startListening, stopListening, stop]);
 
   const handleFileUpload = () => {
     fileInputRef.current?.click();
@@ -334,6 +411,39 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
           </Button>
         </div>
         
+        {/* Voice Status Indicator */}
+        {voiceSupported && (
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center space-x-2">
+              {isListening && (
+                <div className="flex items-center space-x-2 text-red-400">
+                  <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse" />
+                  <span className="text-xs">Listening...</span>
+                </div>
+              )}
+              {isSpeaking && (
+                <div className="flex items-center space-x-2 text-blue-400">
+                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
+                  <span className="text-xs">Speaking...</span>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="text-xs text-gray-400">
+                Hold SPACE to talk • Click mic to toggle
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsContinuousMode(!isContinuousMode)}
+                className={`text-xs ${isContinuousMode ? 'text-green-400' : 'text-gray-400'}`}
+              >
+                {isContinuousMode ? 'Continuous ON' : 'Continuous OFF'}
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Quick Actions Bar */}
         <div className="flex items-center space-x-2 mt-3">
           <Button 

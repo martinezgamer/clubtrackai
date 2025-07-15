@@ -2,6 +2,7 @@ import {
   users, contacts, conversations, forms, formResponses, 
   calendarEvents, socialMediaContent, memoryItems, salesItems, salesTransactions,
   followUpSequences, followUpActions, followUpExecutions,
+  chatHistory, dynamicTables, dynamicTableData,
   type User, type InsertUser, type Contact, type InsertContact,
   type Conversation, type InsertConversation, type Form, type InsertForm,
   type FormResponse, type InsertFormResponse, type CalendarEvent, type InsertCalendarEvent,
@@ -9,7 +10,9 @@ import {
   type MemoryItem, type InsertMemoryItem, type SalesItem, type InsertSalesItem,
   type SalesTransaction, type InsertSalesTransaction,
   type FollowUpSequence, type InsertFollowUpSequence, type FollowUpAction, type InsertFollowUpAction,
-  type FollowUpExecution, type InsertFollowUpExecution
+  type FollowUpExecution, type InsertFollowUpExecution,
+  type ChatHistory, type InsertChatHistory, type DynamicTable, type InsertDynamicTable,
+  type DynamicTableData, type InsertDynamicTableData
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, like, gte, lte } from "drizzle-orm";
@@ -101,6 +104,26 @@ export interface IStorage {
   getPendingFollowUpExecutions(): Promise<FollowUpExecution[]>;
   createFollowUpExecution(execution: InsertFollowUpExecution): Promise<FollowUpExecution>;
   updateFollowUpExecution(id: number, execution: Partial<InsertFollowUpExecution>): Promise<FollowUpExecution>;
+
+  // Chat History
+  getChatHistory(sessionId: string, limit?: number): Promise<ChatHistory[]>;
+  createChatHistory(chat: InsertChatHistory): Promise<ChatHistory>;
+  getChatSessions(): Promise<string[]>;
+  getChatAnalytics(sessionId?: string): Promise<any>;
+
+  // Dynamic Tables
+  getDynamicTable(id: number): Promise<DynamicTable | undefined>;
+  getDynamicTableByName(tableName: string): Promise<DynamicTable | undefined>;
+  getDynamicTables(): Promise<DynamicTable[]>;
+  createDynamicTable(table: InsertDynamicTable): Promise<DynamicTable>;
+  updateDynamicTable(id: number, table: Partial<InsertDynamicTable>): Promise<DynamicTable>;
+  deleteDynamicTable(id: number): Promise<void>;
+
+  // Dynamic Table Data
+  getDynamicTableData(tableId: number): Promise<DynamicTableData[]>;
+  createDynamicTableData(data: InsertDynamicTableData): Promise<DynamicTableData>;
+  updateDynamicTableData(id: number, data: Partial<InsertDynamicTableData>): Promise<DynamicTableData>;
+  deleteDynamicTableData(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -557,6 +580,110 @@ export class DatabaseStorage implements IStorage {
       .where(eq(followUpExecutions.id, id))
       .returning();
     return updatedExecution;
+  }
+
+  // Chat History
+  async getChatHistory(sessionId: string, limit: number = 50): Promise<ChatHistory[]> {
+    return await db.select().from(chatHistory)
+      .where(eq(chatHistory.sessionId, sessionId))
+      .orderBy(desc(chatHistory.createdAt))
+      .limit(limit);
+  }
+
+  async createChatHistory(chat: InsertChatHistory): Promise<ChatHistory> {
+    const [newChat] = await db.insert(chatHistory).values(chat).returning();
+    return newChat;
+  }
+
+  async getChatSessions(): Promise<string[]> {
+    const sessions = await db.select({ sessionId: chatHistory.sessionId })
+      .from(chatHistory)
+      .groupBy(chatHistory.sessionId)
+      .orderBy(desc(chatHistory.createdAt));
+    return sessions.map(s => s.sessionId);
+  }
+
+  async getChatAnalytics(sessionId?: string): Promise<any> {
+    const baseQuery = db.select().from(chatHistory);
+    const query = sessionId ? baseQuery.where(eq(chatHistory.sessionId, sessionId)) : baseQuery;
+    
+    const messages = await query;
+    const totalMessages = messages.length;
+    const userMessages = messages.filter(m => m.sender === 'user').length;
+    const aiMessages = messages.filter(m => m.sender === 'ai').length;
+    
+    return {
+      totalMessages,
+      userMessages,
+      aiMessages,
+      averageResponseTime: messages.reduce((sum, m) => sum + (m.responseTime || 0), 0) / totalMessages,
+      sentimentDistribution: messages.reduce((acc, m) => {
+        if (m.sentiment) {
+          acc[m.sentiment] = (acc[m.sentiment] || 0) + 1;
+        }
+        return acc;
+      }, {} as Record<string, number>),
+      messageTypes: messages.reduce((acc, m) => {
+        acc[m.messageType || 'text'] = (acc[m.messageType || 'text'] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>)
+    };
+  }
+
+  // Dynamic Tables
+  async getDynamicTable(id: number): Promise<DynamicTable | undefined> {
+    const [table] = await db.select().from(dynamicTables).where(eq(dynamicTables.id, id));
+    return table || undefined;
+  }
+
+  async getDynamicTableByName(tableName: string): Promise<DynamicTable | undefined> {
+    const [table] = await db.select().from(dynamicTables).where(eq(dynamicTables.tableName, tableName));
+    return table || undefined;
+  }
+
+  async getDynamicTables(): Promise<DynamicTable[]> {
+    return await db.select().from(dynamicTables).where(eq(dynamicTables.isActive, true));
+  }
+
+  async createDynamicTable(table: InsertDynamicTable): Promise<DynamicTable> {
+    const [newTable] = await db.insert(dynamicTables).values(table).returning();
+    return newTable;
+  }
+
+  async updateDynamicTable(id: number, table: Partial<InsertDynamicTable>): Promise<DynamicTable> {
+    const [updatedTable] = await db
+      .update(dynamicTables)
+      .set(table)
+      .where(eq(dynamicTables.id, id))
+      .returning();
+    return updatedTable;
+  }
+
+  async deleteDynamicTable(id: number): Promise<void> {
+    await db.update(dynamicTables).set({ isActive: false }).where(eq(dynamicTables.id, id));
+  }
+
+  // Dynamic Table Data
+  async getDynamicTableData(tableId: number): Promise<DynamicTableData[]> {
+    return await db.select().from(dynamicTableData).where(eq(dynamicTableData.tableId, tableId));
+  }
+
+  async createDynamicTableData(data: InsertDynamicTableData): Promise<DynamicTableData> {
+    const [newData] = await db.insert(dynamicTableData).values(data).returning();
+    return newData;
+  }
+
+  async updateDynamicTableData(id: number, data: Partial<InsertDynamicTableData>): Promise<DynamicTableData> {
+    const [updatedData] = await db
+      .update(dynamicTableData)
+      .set(data)
+      .where(eq(dynamicTableData.id, id))
+      .returning();
+    return updatedData;
+  }
+
+  async deleteDynamicTableData(id: number): Promise<void> {
+    await db.delete(dynamicTableData).where(eq(dynamicTableData.id, id));
   }
 }
 

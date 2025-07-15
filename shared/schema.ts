@@ -184,6 +184,43 @@ export const followUpExecutions = pgTable("follow_up_executions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Chat History Table
+export const chatHistory = pgTable("chat_history", {
+  id: serial("id").primaryKey(),
+  sessionId: text("session_id").notNull(),
+  message: text("message").notNull(),
+  sender: text("sender").notNull(), // user, ai
+  messageType: text("message_type").default("text"), // text, table, form, action
+  metadata: json("metadata").$type<Record<string, any>>(), // For storing table data, form data, etc.
+  sentiment: text("sentiment"), // positive, negative, neutral
+  keywords: text("keywords").array(),
+  responseTime: integer("response_time"), // in milliseconds
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Dynamic Tables created by AI
+export const dynamicTables = pgTable("dynamic_tables", {
+  id: serial("id").primaryKey(),
+  tableName: text("table_name").notNull().unique(),
+  displayName: text("display_name").notNull(),
+  description: text("description"),
+  schema: json("schema").$type<Record<string, any>>().notNull(), // Column definitions
+  createdBy: text("created_by").notNull().default("ai"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Dynamic Table Data
+export const dynamicTableData = pgTable("dynamic_table_data", {
+  id: serial("id").primaryKey(),
+  tableId: integer("table_id").references(() => dynamicTables.id),
+  rowData: json("row_data").$type<Record<string, any>>().notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Define relations
 export const contactsRelations = relations(contacts, ({ many }) => ({
   conversations: many(conversations),
@@ -405,6 +442,30 @@ export const insertFollowUpExecutionSchema = createInsertSchema(followUpExecutio
   errorMessage: true,
 });
 
+export const insertChatHistorySchema = createInsertSchema(chatHistory).pick({
+  sessionId: true,
+  message: true,
+  sender: true,
+  messageType: true,
+  metadata: true,
+  sentiment: true,
+  keywords: true,
+  responseTime: true,
+});
+
+export const insertDynamicTableSchema = createInsertSchema(dynamicTables).pick({
+  tableName: true,
+  displayName: true,
+  description: true,
+  schema: true,
+  createdBy: true,
+});
+
+export const insertDynamicTableDataSchema = createInsertSchema(dynamicTableData).pick({
+  tableId: true,
+  rowData: true,
+});
+
 export type FollowUpSequence = typeof followUpSequences.$inferSelect;
 export type InsertFollowUpSequence = z.infer<typeof insertFollowUpSequenceSchema>;
 
@@ -413,3 +474,12 @@ export type InsertFollowUpAction = z.infer<typeof insertFollowUpActionSchema>;
 
 export type FollowUpExecution = typeof followUpExecutions.$inferSelect;
 export type InsertFollowUpExecution = z.infer<typeof insertFollowUpExecutionSchema>;
+
+export type ChatHistory = typeof chatHistory.$inferSelect;
+export type InsertChatHistory = z.infer<typeof insertChatHistorySchema>;
+
+export type DynamicTable = typeof dynamicTables.$inferSelect;
+export type InsertDynamicTable = z.infer<typeof insertDynamicTableSchema>;
+
+export type DynamicTableData = typeof dynamicTableData.$inferSelect;
+export type InsertDynamicTableData = z.infer<typeof insertDynamicTableDataSchema>;

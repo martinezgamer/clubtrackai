@@ -10,6 +10,7 @@ import { zfd } from "zod-form-data";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { FridayAI } from "./services/gemini";
 
 const upload = multer({ 
   dest: 'uploads/',
@@ -18,6 +19,7 @@ const upload = multer({
 
 // WebSocket connection management
 const clients = new Set<WebSocket>();
+const fridaySessions = new Map<string, FridayAI>();
 
 function broadcastToClients(message: any) {
   const messageStr = JSON.stringify(message);
@@ -26,6 +28,62 @@ function broadcastToClients(message: any) {
       client.send(messageStr);
     }
   });
+}
+
+// Handle FRIDAY actions
+async function handleFridayAction(action: string, data: any) {
+  try {
+    switch (action) {
+      case 'CREATE_TABLE':
+        if (data && data.tableName) {
+          const friday = new FridayAI();
+          await friday.createDynamicTable(data);
+        }
+        break;
+      
+      case 'ADD_CONTACT':
+        if (data && data.name) {
+          await storage.createContact({
+            name: data.name,
+            nickname: data.nickname || null,
+            role: data.role || 'unknown',
+            phone: data.phone || null,
+            email: data.email || null,
+            notes: data.notes || null,
+            status: 'active'
+          });
+        }
+        break;
+      
+      case 'SCHEDULE_EVENT':
+        if (data && data.title) {
+          await storage.createCalendarEvent({
+            title: data.title,
+            description: data.description || null,
+            startTime: new Date(data.startTime || Date.now()),
+            endTime: new Date(data.endTime || Date.now() + 3600000),
+            location: data.location || null,
+            attendees: data.attendees || [],
+            eventType: 'meeting',
+            isRecurring: false
+          });
+        }
+        break;
+      
+      case 'CREATE_FORM':
+        if (data && data.title) {
+          await storage.createForm({
+            title: data.title,
+            description: data.description || null,
+            fields: data.fields || [],
+            isRecurring: false
+          });
+        }
+        break;
+    }
+  } catch (error) {
+    console.error('Error handling FRIDAY action:', error);
+  }
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -43,33 +101,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const message = JSON.parse(data.toString());
         
         if (message.type === 'chat') {
-          // Save user message
-          await storage.createConversation({
-            contactId: null,
-            userId: 1, // Assuming Bobby is user ID 1
-            message: message.content,
-            sender: 'user',
-            messageType: 'text',
-          });
-
-          // Generate AI response
-          const aiResponse = await geminiService.generateResponse(message.content, message.history || []);
+          const sessionId = message.sessionId || 'default';
           
-          // Save AI response
-          await storage.createConversation({
-            contactId: null,
-            userId: 1,
-            message: aiResponse,
+          // Get or create FRIDAY session
+          if (!fridaySessions.has(sessionId)) {
+            fridaySessions.set(sessionId, new FridayAI(sessionId));
+          }
+          
+          const friday = fridaySessions.get(sessionId)!;
+          
+          // Process message with FRIDAY
+          const result = await friday.processMessage(message.content);
+          
+          // Handle actions if needed
+          if (result.action) {
+            await handleFridayAction(result.action, result.data);
+          }
+          
+          // Send response back to client
+          ws.send(JSON.stringify({
+            type: 'chat',
+            content: result.response,
             sender: 'ai',
-            messageType: 'text',
-          });
-
-          // Broadcast AI response to all clients
-          broadcastToClients({
-            type: 'chat_response',
-            content: aiResponse,
-            timestamp: new Date().toISOString()
-          });
+            timestamp: new Date().toISOString(),
+            messageType: result.messageType,
+            action: result.action,
+            data: result.data
+          }));
         }
       } catch (error) {
         console.error('WebSocket message error:', error);
@@ -622,6 +680,140 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.sendFile(filePath);
     } else {
       res.status(404).json({ error: 'File not found' });
+    }
+  });
+
+  // Chat History API
+  app.get('/api/chat/history/:sessionId', async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const history = await storage.getChatHistory(sessionId, limit);
+      res.json(history);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch chat history' });
+    }
+  });
+
+  app.get('/api/chat/sessions', async (req, res) => {
+    try {
+      const sessions = await storage.getChatSessions();
+      res.json(sessions);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch chat sessions' });
+    }
+  });
+
+  app.get('/api/chat/analytics', async (req, res) => {
+    try {
+      const { sessionId } = req.query;
+      const analytics = await storage.getChatAnalytics(sessionId as string);
+      res.json(analytics);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch chat analytics' });
+    }
+  });
+
+  // Dynamic Tables API
+  app.get('/api/dynamic-tables', async (req, res) => {
+    try {
+      const tables = await storage.getDynamicTables();
+      res.json(tables);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch dynamic tables' });
+    }
+  });
+
+  app.get('/api/dynamic-tables/:id', async (req, res) => {
+    try {
+      const table = await storage.getDynamicTable(parseInt(req.params.id));
+      if (!table) {
+        return res.status(404).json({ error: 'Table not found' });
+      }
+      res.json(table);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch dynamic table' });
+    }
+  });
+
+  app.get('/api/dynamic-tables/name/:tableName', async (req, res) => {
+    try {
+      const table = await storage.getDynamicTableByName(req.params.tableName);
+      if (!table) {
+        return res.status(404).json({ error: 'Table not found' });
+      }
+      res.json(table);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch dynamic table' });
+    }
+  });
+
+  app.post('/api/dynamic-tables', async (req, res) => {
+    try {
+      const table = await storage.createDynamicTable(req.body);
+      res.json(table);
+    } catch (error) {
+      res.status(400).json({ error: 'Failed to create dynamic table' });
+    }
+  });
+
+  app.put('/api/dynamic-tables/:id', async (req, res) => {
+    try {
+      const table = await storage.updateDynamicTable(parseInt(req.params.id), req.body);
+      res.json(table);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update dynamic table' });
+    }
+  });
+
+  app.delete('/api/dynamic-tables/:id', async (req, res) => {
+    try {
+      await storage.deleteDynamicTable(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to delete dynamic table' });
+    }
+  });
+
+  // Dynamic Table Data API
+  app.get('/api/dynamic-tables/:id/data', async (req, res) => {
+    try {
+      const data = await storage.getDynamicTableData(parseInt(req.params.id));
+      res.json(data);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch table data' });
+    }
+  });
+
+  app.post('/api/dynamic-tables/:id/data', async (req, res) => {
+    try {
+      const data = await storage.createDynamicTableData({
+        tableId: parseInt(req.params.id),
+        rowData: req.body
+      });
+      res.json(data);
+    } catch (error) {
+      res.status(400).json({ error: 'Failed to create table data' });
+    }
+  });
+
+  app.put('/api/dynamic-tables/data/:id', async (req, res) => {
+    try {
+      const data = await storage.updateDynamicTableData(parseInt(req.params.id), {
+        rowData: req.body
+      });
+      res.json(data);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update table data' });
+    }
+  });
+
+  app.delete('/api/dynamic-tables/data/:id', async (req, res) => {
+    try {
+      await storage.deleteDynamicTableData(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to delete table data' });
     }
   });
 
