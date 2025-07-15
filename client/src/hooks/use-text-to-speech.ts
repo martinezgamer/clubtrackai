@@ -69,7 +69,7 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
           text,
           voice: {
             languageCode: 'en-US',
-            name: 'en-US-Standard-C' // Natural female voice
+            name: 'en-US-Neural2-A' // Natural neural female voice
           },
           audioConfig: {
             audioEncoding: 'MP3',

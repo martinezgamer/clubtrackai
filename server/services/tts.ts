@@ -54,7 +54,7 @@ export class GoogleCloudTTSService {
       },
       voice: request.voice || {
         languageCode: 'en-US',
-        name: 'en-US-Standard-C' // Female voice, natural sounding
+        name: 'en-US-Neural2-A' // Neural voice, very natural sounding female
       },
       audioConfig: request.audioConfig || {
         audioEncoding: 'MP3',
@@ -65,10 +65,9 @@ export class GoogleCloudTTSService {
     };
 
     try {
-      const response = await fetch(this.baseUrl, {
+      const response = await fetch(`${this.baseUrl}?key=${this.apiKey}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(payload)
