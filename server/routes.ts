@@ -420,8 +420,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { text, voice, audioConfig } = req.body;
       
-      if (!text) {
-        return res.status(400).json({ error: 'Text is required' });
+      if (!text || typeof text !== 'string') {
+        return res.status(400).json({ error: 'Text is required and must be a string' });
       }
 
       if (!ttsService.isAvailable()) {
@@ -432,6 +432,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         text,
         voice,
         audioConfig
+      }).catch(error => {
+        console.error('TTS synthesis error:', error);
+        return null;
       });
 
       if (!audioBuffer) {

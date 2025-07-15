@@ -43,10 +43,16 @@ export class GoogleCloudTTSService {
 
   async synthesizeText(request: TTSRequest): Promise<Buffer | null> {
     if (!this.apiKey) {
-      throw new Error('Google Cloud TTS API key not configured');
+      console.warn('Google Cloud TTS API key not configured');
+      return null;
     }
 
     const sanitizedText = this.sanitizeText(request.text);
+    
+    // Skip empty or very short texts
+    if (!sanitizedText || sanitizedText.length < 2) {
+      return null;
+    }
     
     const payload = {
       input: {
@@ -74,9 +80,9 @@ export class GoogleCloudTTSService {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
+        const errorText = await response.text().catch(() => 'Unknown error');
         console.error('TTS API Error:', response.status, errorText);
-        throw new Error(`TTS API request failed: ${response.status} ${errorText}`);
+        return null; // Return null instead of throwing to prevent unhandled rejections
       }
 
       const data = await response.json();
@@ -88,7 +94,7 @@ export class GoogleCloudTTSService {
       return null;
     } catch (error) {
       console.error('Error calling Google Cloud TTS:', error);
-      throw error;
+      return null; // Return null instead of throwing to prevent unhandled rejections
     }
   }
 

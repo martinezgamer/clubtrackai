@@ -70,26 +70,42 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
   // Handle WebSocket messages
   useEffect(() => {
     if (lastMessage) {
-      if (lastMessage.type === 'chat_response') {
-        setIsTyping(false);
-        const aiMessage: ChatMessage = {
-          id: `ai-${Date.now()}`,
-          content: lastMessage.content,
-          sender: 'ai',
-          timestamp: lastMessage.timestamp || new Date().toISOString(),
-          metadata: lastMessage.metadata,
-        };
-        setMessages(prev => [...prev, aiMessage]);
-        
-        // Auto-speak AI responses for hands-free operation (only if not already speaking)
-        if (aiMessage.content && !isSpeaking) {
-          setTimeout(() => speak(aiMessage.content), 100); // Small delay to avoid conflicts
+      try {
+        if (lastMessage.type === 'chat_response') {
+          setIsTyping(false);
+          const aiMessage: ChatMessage = {
+            id: `ai-${Date.now()}`,
+            content: lastMessage.content,
+            sender: 'ai',
+            timestamp: lastMessage.timestamp || new Date().toISOString(),
+            metadata: lastMessage.metadata,
+          };
+          setMessages(prev => [...prev, aiMessage]);
+          
+          // Auto-speak AI responses for hands-free operation (only if not already speaking)
+          if (aiMessage.content && !isSpeaking) {
+            setTimeout(() => {
+              try {
+                speak(aiMessage.content);
+              } catch (speakError) {
+                console.warn('Text-to-speech error:', speakError);
+              }
+            }, 100); // Small delay to avoid conflicts
+          }
+        } else if (lastMessage.type === 'error') {
+          setIsTyping(false);
+          toast({
+            title: "Error",
+            description: lastMessage.message,
+            variant: "destructive",
+          });
         }
-      } else if (lastMessage.type === 'error') {
+      } catch (error) {
+        console.error('Error handling WebSocket message:', error);
         setIsTyping(false);
         toast({
           title: "Error",
-          description: lastMessage.message,
+          description: "Failed to process message",
           variant: "destructive",
         });
       }
@@ -124,12 +140,22 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
     setMessages(prev => [...prev, userMessage]);
     setIsTyping(true);
 
-    // Send message via WebSocket
-    sendMessage({
-      type: 'chat',
-      content: inputValue,
-      history: messages.slice(-10), // Send last 10 messages for context
-    });
+    try {
+      // Send message via WebSocket
+      sendMessage({
+        type: 'chat',
+        content: inputValue,
+        history: messages.slice(-10), // Send last 10 messages for context
+      });
+    } catch (error) {
+      console.error('Error sending message:', error);
+      setIsTyping(false);
+      toast({
+        title: "Connection Error",
+        description: "Failed to send message. Please check your connection.",
+        variant: "destructive",
+      });
+    }
 
     setInputValue('');
   };
@@ -186,6 +212,9 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
         break;
       case 'create-form':
         onQuickAction('create-form');
+        break;
+      case 'create-new':
+        onQuickAction('store-dancer');
         break;
       default:
         console.log('Unknown action:', action);
