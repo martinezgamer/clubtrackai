@@ -24,6 +24,7 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
   const [pitch, setPitch] = useState(1);
   const [volume, setVolume] = useState(1);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const isSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
 
@@ -56,11 +57,64 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
     };
   }, [isSupported]);
 
-  const speak = useCallback((text: string) => {
-    if (!isSupported || !text.trim()) return;
+  // Function to try Google Cloud TTS first, fallback to browser TTS
+  const speakWithGoogleTTS = useCallback(async (text: string) => {
+    try {
+      const response = await fetch('/api/tts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text,
+          voice: {
+            languageCode: 'en-US',
+            name: 'en-US-Standard-C' // Natural female voice
+          },
+          audioConfig: {
+            audioEncoding: 'MP3',
+            speakingRate: rate,
+            pitch: pitch * 2 - 2, // Convert 0-2 range to -2 to 2
+            volumeGainDb: (volume - 1) * 10 // Convert 0-2 range to -10 to 10
+          }
+        })
+      });
 
-    // Stop any current speech
-    window.speechSynthesis.cancel();
+      if (response.ok) {
+        const audioBlob = await response.blob();
+        const audioUrl = URL.createObjectURL(audioBlob);
+        
+        const audio = new Audio(audioUrl);
+        currentAudioRef.current = audio;
+        
+        audio.onloadstart = () => {
+          setIsSpeaking(true);
+        };
+        
+        audio.onended = () => {
+          setIsSpeaking(false);
+          URL.revokeObjectURL(audioUrl);
+          currentAudioRef.current = null;
+        };
+        
+        audio.onerror = () => {
+          setIsSpeaking(false);
+          URL.revokeObjectURL(audioUrl);
+          currentAudioRef.current = null;
+        };
+        
+        await audio.play();
+        return true;
+      }
+    } catch (error) {
+      console.log('Google TTS failed, falling back to browser TTS:', error);
+    }
+    return false;
+  }, [rate, pitch, volume]);
+
+  // Fallback browser TTS function
+  const speakWithBrowserTTS = useCallback((text: string) => {
+    if (!isSupported || !text.trim()) return;
 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = rate;
@@ -79,10 +133,41 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
     window.speechSynthesis.speak(utterance);
   }, [isSupported, selectedVoice, rate, pitch, volume]);
 
-  const stop = useCallback(() => {
-    if (!isSupported) return;
+  const speak = useCallback(async (text: string) => {
+    if (!text.trim()) return;
+
+    // Stop any current speech
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current.currentTime = 0;
+      currentAudioRef.current = null;
+    }
     
-    window.speechSynthesis.cancel();
+    if (isSupported) {
+      window.speechSynthesis.cancel();
+    }
+
+    // Try Google Cloud TTS first, fallback to browser TTS
+    const googleTTSSuccess = await speakWithGoogleTTS(text);
+    if (!googleTTSSuccess) {
+      speakWithBrowserTTS(text);
+    }
+  }, [speakWithGoogleTTS, speakWithBrowserTTS, isSupported]);
+
+  const stop = useCallback(() => {
+    // Stop Google TTS audio if playing
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current.currentTime = 0;
+      currentAudioRef.current = null;
+    }
+    
+    // Stop browser TTS
+    if (isSupported) {
+      window.speechSynthesis.cancel();
+      utteranceRef.current = null;
+    }
+    
     setIsSpeaking(false);
   }, [isSupported]);
 

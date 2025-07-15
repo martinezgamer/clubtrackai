@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { geminiService } from "./services/gemini";
+import { ttsService } from "./services/tts";
 import { insertContactSchema, insertFormSchema, insertCalendarEventSchema, insertMemoryItemSchema } from "@shared/schema";
 import { zfd } from "zod-form-data";
 import multer from "multer";
@@ -410,6 +411,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(transaction);
     } catch (error) {
       res.status(500).json({ error: 'Failed to update sales transaction' });
+    }
+  });
+
+  // Text-to-Speech API
+  app.post('/api/tts', async (req, res) => {
+    try {
+      const { text, voice, audioConfig } = req.body;
+      
+      if (!text) {
+        return res.status(400).json({ error: 'Text is required' });
+      }
+
+      if (!ttsService.isAvailable()) {
+        return res.status(503).json({ error: 'TTS service not available' });
+      }
+
+      const audioBuffer = await ttsService.synthesizeText({
+        text,
+        voice,
+        audioConfig
+      });
+
+      if (!audioBuffer) {
+        return res.status(500).json({ error: 'Failed to generate audio' });
+      }
+
+      res.setHeader('Content-Type', 'audio/mpeg');
+      res.setHeader('Content-Length', audioBuffer.length);
+      res.send(audioBuffer);
+    } catch (error) {
+      console.error('TTS API error:', error);
+      res.status(500).json({ error: 'TTS generation failed' });
     }
   });
 
