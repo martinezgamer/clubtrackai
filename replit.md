@@ -7,7 +7,7 @@ This is a full-stack web application designed to help Bobby manage his fantasy g
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
-AI personality: Iron Man JARVIS - sophisticated, professional, courteous, and exceptionally helpful with subtle British sophistication.
+AI personality: Iron Man JARVIS - sophisticated, professional, courteous, and exceptionally helpful with subtle British sophistication. Always addresses user as "Sam".
 
 ## System Architecture
 

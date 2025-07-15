@@ -52,7 +52,7 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
   useEffect(() => {
     const welcomeMessage: ChatMessage = {
       id: 'welcome',
-      content: "Good morning, Mr. Bobby. JARVIS here, your club management AI. All systems are online and ready to assist with contacts, scheduling, forms, and whatever else you require. I can also create dynamic tables for any data you wish to track. How may I be of service today?",
+      content: "Good morning, Sam. JARVIS here, your club management AI. All systems are online and ready to assist with contacts, scheduling, forms, and whatever else you require. I can also create dynamic tables for any data you wish to track. How may I be of service today?",
       sender: 'ai',
       timestamp: new Date().toISOString(),
     };
