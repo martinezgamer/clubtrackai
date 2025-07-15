@@ -7,7 +7,7 @@ This is a full-stack web application designed to help Bobby manage his fantasy g
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
-AI personality: Iron Man Friday - sophisticated, slightly sarcastic, but helpful and efficient.
+AI personality: Iron Man JARVIS - sophisticated, professional, courteous, and exceptionally helpful with subtle British sophistication.
 
 ## System Architecture
 
@@ -42,8 +42,8 @@ AI personality: Iron Man Friday - sophisticated, slightly sarcastic, but helpful
   - Notes and preferences storage
   - Search and filtering capabilities
 
-### 2. FRIDAY AI Assistant
-- **Purpose**: Provide intelligent assistance for club operations with Iron Man-inspired personality
+### 2. JARVIS AI Assistant
+- **Purpose**: Provide intelligent assistance for club operations with Iron Man's original AI personality
 - **Features**:
   - Real-time WebSocket-based chat with persistent sessions
   - Context-aware responses using club data and conversation history
@@ -51,7 +51,11 @@ AI personality: Iron Man Friday - sophisticated, slightly sarcastic, but helpful
   - Dynamic table creation capabilities
   - Automatic action execution (contact creation, scheduling, form creation)
   - Comprehensive chat history storage and analytics
-  - Natural conversation flow with personality and wit
+  - Natural conversation flow with professional sophistication
+  - Advanced dancer management with lineup tracking and reliability patterns
+  - Memory-first approach with timestamped transactions and individual quirks
+  - Proactive suggestions for schedule gaps and backup dancer recommendations
+  - Daily briefings with confirmation status and availability predictions
 
 ### 3. Form Builder
 - **Purpose**: Create custom forms for schedules, feedback, and data collection
@@ -101,10 +105,10 @@ AI personality: Iron Man Friday - sophisticated, slightly sarcastic, but helpful
   - Dynamic table creation through conversation
   - Flexible data storage with JSON-based rows
   - Table management (create, read, update, delete)
-  - Integration with FRIDAY AI for seamless table operations
+  - Integration with JARVIS AI for seamless table operations
 
 ### 9. Chat History and Analytics
-- **Purpose**: Track and analyze all conversations with FRIDAY
+- **Purpose**: Track and analyze all conversations with JARVIS
 - **Features**:
   - Persistent chat history storage by session
   - Conversation analytics and sentiment tracking

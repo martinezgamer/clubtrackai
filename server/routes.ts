@@ -10,7 +10,7 @@ import { zfd } from "zod-form-data";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { FridayAI } from "./services/gemini";
+import { JarvisAI } from "./services/gemini";
 
 const upload = multer({ 
   dest: 'uploads/',
@@ -19,7 +19,7 @@ const upload = multer({
 
 // WebSocket connection management
 const clients = new Set<WebSocket>();
-const fridaySessions = new Map<string, FridayAI>();
+const jarvisSessions = new Map<string, JarvisAI>();
 
 function broadcastToClients(message: any) {
   const messageStr = JSON.stringify(message);
@@ -30,14 +30,14 @@ function broadcastToClients(message: any) {
   });
 }
 
-// Handle FRIDAY actions
-async function handleFridayAction(action: string, data: any) {
+// Handle JARVIS actions
+async function handleJarvisAction(action: string, data: any) {
   try {
     switch (action) {
       case 'CREATE_TABLE':
         if (data && data.tableName) {
-          const friday = new FridayAI();
-          await friday.createDynamicTable(data);
+          const jarvis = new JarvisAI();
+          await jarvis.createDynamicTable(data);
         }
         break;
       
@@ -103,19 +103,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (message.type === 'chat') {
           const sessionId = message.sessionId || 'default';
           
-          // Get or create FRIDAY session
-          if (!fridaySessions.has(sessionId)) {
-            fridaySessions.set(sessionId, new FridayAI(sessionId));
+          // Get or create JARVIS session
+          if (!jarvisSessions.has(sessionId)) {
+            jarvisSessions.set(sessionId, new JarvisAI(sessionId));
           }
           
-          const friday = fridaySessions.get(sessionId)!;
+          const jarvis = jarvisSessions.get(sessionId)!;
           
-          // Process message with FRIDAY
-          const result = await friday.processMessage(message.content);
+          // Process message with JARVIS
+          const result = await jarvis.processMessage(message.content);
           
           // Handle actions if needed
           if (result.action) {
-            await handleFridayAction(result.action, result.data);
+            await handleJarvisAction(result.action, result.data);
           }
           
           // Send response back to client
