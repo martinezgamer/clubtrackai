@@ -144,77 +144,148 @@ export function Sidebar({ onContactSelect, onQuickAction }: SidebarProps) {
 
       {/* Scrollable Content */}
       <ScrollArea className="flex-1">
-        {/* Recent Recalls */}
-        <div className="p-4 border-b border-gray-700">
-          <h3 className="text-sm font-medium text-gray-300 mb-3">Recent Recalls</h3>
-          <div className="space-y-2">
-            {safeMemoryItems.slice(0, 3).map((item) => (
-              <Card key={item.id} className="bg-gray-800 border-gray-700">
-                <CardContent className="p-3">
-                  <p className="text-sm text-white">{item.title}</p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    <Clock className="w-3 h-3 inline mr-1" />
-                    {format(new Date(item.createdAt), 'MMM d, h:mm a')}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        {/* Active Contacts */}
-        <div className="p-4 border-b border-gray-700">
-          <h3 className="text-sm font-medium text-gray-300 mb-3">Active Contacts</h3>
-          <div className="space-y-2">
-            {safeContacts.slice(0, 10).map((contact) => (
-              <div 
-                key={contact.id}
-                className="flex items-center space-x-3 p-2 hover:bg-gray-800 rounded-lg transition-colors cursor-pointer"
-                onClick={() => onContactSelect(contact)}
-              >
-                <Avatar className="w-8 h-8">
-                  <AvatarImage src={contact.photoUrl} alt={contact.name} />
-                  <AvatarFallback className="text-xs">
-                    {getContactInitials(contact.name)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white truncate">{contact.name}</p>
-                  <Badge variant="secondary" className={`text-xs ${getRoleColor(contact.role)}`}>
-                    {contact.role}
-                  </Badge>
-                </div>
-                <div className={`w-2 h-2 rounded-full ${getStatusColor(contact.status)}`} />
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsContent value="memory" className="mt-0">
+            {/* Recent Recalls */}
+            <div className="p-4 border-b border-gray-700">
+              <h3 className="text-sm font-medium text-gray-300 mb-3">Recent Recalls</h3>
+              <div className="space-y-2">
+                {safeMemoryItems.slice(0, 3).map((item) => (
+                  <Card key={item.id} className="bg-gray-800 border-gray-700">
+                    <CardContent className="p-3">
+                      <p className="text-sm text-white">{item.title}</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        <Clock className="w-3 h-3 inline mr-1" />
+                        {format(new Date(item.createdAt), 'MMM d, h:mm a')}
+                      </p>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
 
-        {/* Today's Schedule */}
-        <div className="p-4">
-          <h3 className="text-sm font-medium text-gray-300 mb-3">Today's Schedule</h3>
-          <div className="space-y-2">
-            {safeTodaysEvents.length === 0 ? (
-              <p className="text-sm text-gray-400">No events scheduled for today</p>
-            ) : (
-              safeTodaysEvents.map((event) => (
-                <Card key={event.id} className="bg-gray-800 border-gray-700">
+            {/* Active Contacts */}
+            <div className="p-4 border-b border-gray-700">
+              <h3 className="text-sm font-medium text-gray-300 mb-3">Active Contacts</h3>
+              <div className="space-y-2">
+                {safeContacts.slice(0, 10).map((contact) => (
+                  <div 
+                    key={contact.id}
+                    className="flex items-center space-x-3 p-2 hover:bg-gray-800 rounded-lg transition-colors cursor-pointer"
+                    onClick={() => onContactSelect(contact)}
+                  >
+                    <Avatar className="w-8 h-8">
+                      <AvatarImage src={contact.photoUrl} alt={contact.name} />
+                      <AvatarFallback className="text-xs">
+                        {getContactInitials(contact.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-white truncate">{contact.name}</p>
+                      <Badge variant="secondary" className={`text-xs ${getRoleColor(contact.role)}`}>
+                        {contact.role}
+                      </Badge>
+                    </div>
+                    <div className={`w-2 h-2 rounded-full ${getStatusColor(contact.status)}`} />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Today's Schedule */}
+            <div className="p-4">
+              <h3 className="text-sm font-medium text-gray-300 mb-3">Today's Schedule</h3>
+              <div className="space-y-2">
+                {safeTodaysEvents.length === 0 ? (
+                  <p className="text-sm text-gray-400">No events scheduled for today</p>
+                ) : (
+                  safeTodaysEvents.map((event) => (
+                    <Card key={event.id} className="bg-gray-800 border-gray-700">
+                      <CardContent className="p-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm text-white">{event.title}</p>
+                          <span className="text-xs text-gray-400">
+                            {format(new Date(event.startTime), 'h:mm a')}
+                          </span>
+                        </div>
+                        {event.description && (
+                          <p className="text-xs text-gray-400 mt-1">{event.description}</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="tasks" className="mt-0">
+            {/* Tasks Section */}
+            <div className="p-4 border-b border-gray-700">
+              <h3 className="text-sm font-medium text-gray-300 mb-3">Pending Tasks</h3>
+              <div className="space-y-2">
+                <Card className="bg-gray-800 border-gray-700">
                   <CardContent className="p-3">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm text-white">{event.title}</p>
-                      <span className="text-xs text-gray-400">
-                        {format(new Date(event.startTime), 'h:mm a')}
-                      </span>
+                      <p className="text-sm text-white">Review tonight's lineup</p>
+                      <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+                        <CheckSquare className="w-4 h-4" />
+                      </Button>
                     </div>
-                    {event.description && (
-                      <p className="text-xs text-gray-400 mt-1">{event.description}</p>
-                    )}
+                    <p className="text-xs text-gray-400 mt-1">Due: Today 6:00 PM</p>
                   </CardContent>
                 </Card>
-              ))
-            )}
-          </div>
-        </div>
+                
+                <Card className="bg-gray-800 border-gray-700">
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-white">Follow up with Monica</p>
+                      <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+                        <CheckSquare className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">Due: Tomorrow 10:00 AM</p>
+                  </CardContent>
+                </Card>
+                
+                <Card className="bg-gray-800 border-gray-700">
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-white">Update schedule form</p>
+                      <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+                        <CheckSquare className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">Due: This week</p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+            
+            {/* Quick Task Actions */}
+            <div className="p-4">
+              <h3 className="text-sm font-medium text-gray-300 mb-3">Quick Actions</h3>
+              <div className="space-y-2">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start bg-blue-500/10 border-blue-500/20 text-blue-400 hover:bg-blue-500/20"
+                  onClick={() => onQuickAction('create-form')}
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  Create New Task
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start bg-green-500/10 border-green-500/20 text-green-400 hover:bg-green-500/20"
+                  onClick={() => onQuickAction('today-schedule')}
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  View Schedule
+                </Button>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </ScrollArea>
 
       {/* Quick Actions Bar */}

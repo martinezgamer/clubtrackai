@@ -256,14 +256,55 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // TODO: Implement file upload logic
-      toast({
-        title: "File Upload",
-        description: `Selected file: ${file.name}`,
-      });
+      try {
+        // Create form data to send the file
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        // Send the file to the chat with context
+        const fileMessage = `I'm uploading a file: ${file.name} (${file.type}, ${(file.size / 1024).toFixed(1)} KB). Please analyze it and help me with it.`;
+        
+        // Send the text message first
+        const userMessage: ChatMessage = {
+          id: `user-${Date.now()}`,
+          content: fileMessage,
+          sender: 'user',
+          timestamp: new Date().toISOString(),
+        };
+        
+        setMessages(prev => [...prev, userMessage]);
+        setInputValue('');
+        setIsTyping(true);
+        
+        // Send to WebSocket
+        sendMessage({
+          type: 'chat',
+          content: fileMessage,
+          file: file,
+          sessionId: 'default'
+        });
+        
+        toast({
+          title: "File Uploaded",
+          description: `Successfully uploaded ${file.name}`,
+        });
+        
+        // Reset file input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        
+      } catch (error) {
+        console.error('Error uploading file:', error);
+        toast({
+          title: "Upload Failed",
+          description: "Failed to upload file. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -325,7 +366,12 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
                 {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
               </Button>
             )}
-            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-gray-400 hover:text-white"
+              onClick={handleFileUpload}
+            >
               <Camera className="w-4 h-4" />
             </Button>
             <Button 

@@ -471,6 +471,10 @@ export const geminiService = {
 
   async generateSocialMediaPosts(prompt: string, imageBase64?: string, imageMimeType?: string): Promise<any[]> {
     try {
+      if (!process.env.GEMINI_API_KEY) {
+        throw new Error("GEMINI_API_KEY not configured");
+      }
+
       const contents = [
         {
           role: "user",
@@ -502,12 +506,21 @@ export const geminiService = {
       return posts;
     } catch (error) {
       console.error("Error generating social media posts:", error);
-      return [];
+      // Return fallback posts instead of empty array
+      return [{
+        id: 1,
+        content: "Unable to generate social media posts at this time. Please try again later.",
+        platform: 'instagram'
+      }];
     }
   },
 
   async analyzeImageForSocialMedia(imageBase64: string, imageMimeType: string): Promise<string> {
     try {
+      if (!process.env.GEMINI_API_KEY) {
+        throw new Error("GEMINI_API_KEY not configured");
+      }
+
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: [
@@ -529,7 +542,7 @@ export const geminiService = {
       return response.text || "Unable to analyze image";
     } catch (error) {
       console.error("Error analyzing image:", error);
-      return "Error analyzing image";
+      return "Error analyzing image: " + (error.message || "Unknown error occurred");
     }
   }
 };

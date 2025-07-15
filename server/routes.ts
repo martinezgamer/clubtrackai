@@ -128,6 +128,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
             action: result.action,
             data: result.data
           }));
+        } else if (message.type === 'quickAction') {
+          // Handle quick actions from UI
+          const action = message.action;
+          let response = '';
+          
+          switch (action) {
+            case 'create-new':
+              response = "I'll help you create a new contact. What details would you like to add?";
+              break;
+            case 'settings':
+              response = "Let me help you with settings. What would you like to configure?";
+              break;
+            case 'today-schedule':
+              response = "Let me get today's schedule for you.";
+              break;
+            case 'all-contacts':
+              response = "Here are all your contacts. What would you like to do with them?";
+              break;
+            case 'sales-report':
+              response = "I'll generate a sales report for you.";
+              break;
+            case 'create-form':
+              response = "I'll help you create a new form. What type of form do you need?";
+              break;
+            default:
+              response = `I received your ${action} request. How can I help you with that?`;
+          }
+          
+          ws.send(JSON.stringify({
+            type: 'chat',
+            content: response,
+            sender: 'ai',
+            timestamp: new Date().toISOString(),
+            messageType: 'text',
+            action: action,
+            data: null
+          }));
         }
       } catch (error) {
         console.error('WebSocket message error:', error);

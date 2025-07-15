@@ -5,7 +5,7 @@ import { ContactForm } from '@/components/contacts/contact-form';
 import { FormBuilder } from '@/components/forms/form-builder';
 import { CalendarWidget } from '@/components/calendar/calendar-widget';
 import SocialMedia from '@/pages/social-media';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { ContactCard } from '@/components/contacts/contact-card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -74,16 +74,10 @@ export default function Home() {
         setSelectedContact(null);
         break;
       case 'today-schedule':
-        toast({
-          title: "Today's Schedule",
-          description: "Check the sidebar for today's events.",
-        });
+        setActiveModal('calendar');
         break;
       case 'sales-report':
-        toast({
-          title: "Sales Report",
-          description: "Sales reporting feature will be available soon.",
-        });
+        setActiveModal('sales');
         break;
       case 'settings':
         setActiveModal('settings');
@@ -167,10 +161,39 @@ export default function Home() {
         return 'All Contacts';
       case 'social-media':
         return 'Social Media Generator';
+      case 'calendar':
+        return 'Calendar';
+      case 'sales':
+        return 'Sales Report';
       case 'settings':
         return 'System Settings';
       default:
         return '';
+    }
+  };
+
+  const getModalDescription = () => {
+    switch (activeModal) {
+      case 'store-dancer':
+        return selectedContact ? 'Edit dancer information and preferences' : 'Add a new dancer to your club management system';
+      case 'create-form':
+        return 'Create a new form for data collection and feedback';
+      case 'add-event':
+        return 'Schedule a new event on your calendar';
+      case 'edit-contact':
+        return 'Edit contact information and preferences';
+      case 'all-contacts':
+        return 'View and manage all your contacts';
+      case 'social-media':
+        return 'Generate and manage social media content';
+      case 'calendar':
+        return 'View and manage your calendar events';
+      case 'sales':
+        return 'View sales reports and analytics';
+      case 'settings':
+        return 'Configure application settings and preferences';
+      default:
+        return 'Modal dialog window';
     }
   };
 
@@ -268,6 +291,58 @@ export default function Home() {
         );
       case 'social-media':
         return <SocialMedia />;
+      case 'calendar':
+        return (
+          <div className="space-y-4">
+            <CalendarWidget
+              selectedContact={selectedContact}
+              onSave={(event) => {
+                handleModalClose();
+                toast({
+                  title: "Event Created",
+                  description: `Event "${event.title}" added to calendar.`,
+                });
+              }}
+              onCancel={handleModalClose}
+            />
+          </div>
+        );
+      case 'sales':
+        return (
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white">Sales Report</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 bg-gray-700 rounded-lg">
+                  <h4 className="font-medium text-white mb-2">Today's Sales</h4>
+                  <p className="text-2xl font-bold text-green-400">$450.00</p>
+                  <p className="text-sm text-gray-300">12 transactions</p>
+                </div>
+                <div className="p-4 bg-gray-700 rounded-lg">
+                  <h4 className="font-medium text-white mb-2">This Week</h4>
+                  <p className="text-2xl font-bold text-blue-400">$2,340.00</p>
+                  <p className="text-sm text-gray-300">67 transactions</p>
+                </div>
+                <div className="p-4 bg-gray-700 rounded-lg">
+                  <h4 className="font-medium text-white mb-2">Top Items</h4>
+                  <div className="space-y-1">
+                    <p className="text-sm text-gray-300">Energy Drinks - $180</p>
+                    <p className="text-sm text-gray-300">Snacks - $120</p>
+                    <p className="text-sm text-gray-300">Accessories - $95</p>
+                  </div>
+                </div>
+                <div className="p-4 bg-gray-700 rounded-lg">
+                  <h4 className="font-medium text-white mb-2">Payment Methods</h4>
+                  <div className="space-y-1">
+                    <p className="text-sm text-gray-300">Cash - 65%</p>
+                    <p className="text-sm text-gray-300">Card - 30%</p>
+                    <p className="text-sm text-gray-300">Digital - 5%</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
       case 'settings':
         return (
           <div className="space-y-6">
@@ -275,8 +350,26 @@ export default function Home() {
               <h3 className="text-lg font-semibold text-white">System Settings</h3>
               <div className="space-y-3">
                 <div className="p-4 bg-gray-700 rounded-lg">
-                  <h4 className="font-medium text-white mb-2">FRIDAY AI Assistant</h4>
+                  <h4 className="font-medium text-white mb-2">Sam AI Assistant</h4>
                   <p className="text-sm text-gray-300">Voice recognition and text-to-speech enabled</p>
+                  <div className="mt-3 space-y-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="bg-gray-600 border-gray-500 text-white hover:bg-gray-500"
+                      onClick={() => toast({ title: "Settings", description: "Voice settings updated" })}
+                    >
+                      Configure Voice
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="bg-gray-600 border-gray-500 text-white hover:bg-gray-500 ml-2"
+                      onClick={() => toast({ title: "Settings", description: "AI personality updated" })}
+                    >
+                      AI Personality
+                    </Button>
+                  </div>
                 </div>
                 <div className="p-4 bg-gray-700 rounded-lg">
                   <h4 className="font-medium text-white mb-2">Database</h4>
@@ -309,13 +402,13 @@ export default function Home() {
       <ChatInterface onQuickAction={handleQuickAction} />
       
       <Dialog open={activeModal !== 'none'} onOpenChange={handleModalClose}>
-        <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-4xl max-h-[90vh] overflow-y-auto" aria-describedby="modal-description">
+        <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-white">{getModalTitle()}</DialogTitle>
+            <DialogDescription className="text-gray-300">
+              {getModalDescription()}
+            </DialogDescription>
           </DialogHeader>
-          <div id="modal-description" className="sr-only">
-            {getModalTitle()} dialog window
-          </div>
           {renderModalContent()}
         </DialogContent>
       </Dialog>
