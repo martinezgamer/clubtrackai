@@ -450,6 +450,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Social Media Post Generation API
+  app.post('/api/social-media/generate-posts', upload.single('image'), async (req, res) => {
+    try {
+      const { prompt } = req.body;
+      
+      if (!prompt && !req.file) {
+        return res.status(400).json({ error: 'Either prompt or image is required' });
+      }
+
+      let imageBase64 = null;
+      let imageMimeType = null;
+
+      if (req.file) {
+        const imageBuffer = fs.readFileSync(req.file.path);
+        imageBase64 = imageBuffer.toString('base64');
+        imageMimeType = req.file.mimetype;
+        
+        // Clean up uploaded file
+        fs.unlinkSync(req.file.path);
+      }
+
+      const posts = await geminiService.generateSocialMediaPosts(
+        prompt || '',
+        imageBase64,
+        imageMimeType
+      );
+
+      res.json({ posts });
+    } catch (error) {
+      console.error('Social media post generation error:', error);
+      res.status(500).json({ error: 'Failed to generate social media posts' });
+    }
+  });
+
+  // Image Analysis for Social Media API
+  app.post('/api/social-media/analyze-image', upload.single('image'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'Image file is required' });
+      }
+
+      const imageBuffer = fs.readFileSync(req.file.path);
+      const imageBase64 = imageBuffer.toString('base64');
+      const imageMimeType = req.file.mimetype;
+      
+      // Clean up uploaded file
+      fs.unlinkSync(req.file.path);
+
+      const analysis = await geminiService.analyzeImageForSocialMedia(
+        imageBase64,
+        imageMimeType
+      );
+
+      res.json({ analysis });
+    } catch (error) {
+      console.error('Image analysis error:', error);
+      res.status(500).json({ error: 'Failed to analyze image' });
+    }
+  });
+
   // Follow-up Sequences API
   app.get('/api/follow-up/sequences', async (req, res) => {
     try {

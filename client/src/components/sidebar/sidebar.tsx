@@ -9,7 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { 
   Bot, Settings, Brain, CheckSquare, UserPlus, FileText, 
-  CalendarPlus, Clock, Phone, Calendar, Edit, Users, TrendingUp, Plus
+  CalendarPlus, Clock, Phone, Calendar, Edit, Users, TrendingUp, Plus, Share2
 } from 'lucide-react';
 import { contactsApi, memoryApi, calendarApi } from '@/lib/api';
 import { format } from 'date-fns';
@@ -130,6 +130,14 @@ export function Sidebar({ onContactSelect, onQuickAction }: SidebarProps) {
           >
             <CalendarPlus className="w-4 h-4 mr-2" />
             Add Event
+          </Button>
+          <Button 
+            variant="outline" 
+            className="w-full justify-start bg-pink-500/10 border-pink-500/20 text-pink-400 hover:bg-pink-500/20"
+            onClick={() => onQuickAction('social-media')}
+          >
+            <Share2 className="w-4 h-4 mr-2" />
+            Social Media
           </Button>
         </div>
       </div>

@@ -179,6 +179,21 @@ export const socialMediaApi = {
   
   generateContent: (contentType: string, topic: string, platform?: string) => 
     apiRequest('POST', '/api/social-media/generate', { contentType, topic, platform }),
+  
+  generatePosts: (prompt: string, image?: File) => {
+    const formData = new FormData();
+    formData.append('prompt', prompt);
+    if (image) {
+      formData.append('image', image);
+    }
+    return apiRequest('POST', '/api/social-media/generate-posts', formData);
+  },
+  
+  analyzeImage: (image: File) => {
+    const formData = new FormData();
+    formData.append('image', image);
+    return apiRequest('POST', '/api/social-media/analyze-image', formData);
+  },
 };
 
 // Image Analysis API

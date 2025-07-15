@@ -1,6 +1,8 @@
 import { GoogleGenAI } from "@google/genai";
 import { storage } from "../storage";
 import { type Contact, type Conversation, type CalendarEvent, type MemoryItem } from "@shared/schema";
+import * as fs from "fs";
+import * as path from "path";
 
 const ai = new GoogleGenAI({ 
   apiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || "" 
@@ -226,6 +228,90 @@ Return as JSON:
         content: "Content generated successfully",
         hashtags: ["#club", "#entertainment"]
       };
+    }
+  }
+
+  async generateSocialMediaPosts(prompt: string, imageBase64?: string, imageMimeType?: string): Promise<string[]> {
+    try {
+      const contents = [];
+      
+      if (imageBase64 && imageMimeType) {
+        contents.push({
+          inlineData: {
+            data: imageBase64,
+            mimeType: imageMimeType,
+          },
+        });
+        
+        contents.push({
+          text: `Considering the uploaded image${prompt ? ` and the following description: "${prompt}"` : ''}, generate 3-5 creative social media post ideas for Facebook and Instagram for a fantasy gentlemen's club. 
+          
+          For each post idea, include:
+          - A compelling caption that's professional yet engaging
+          - Relevant hashtags (including club-specific ones)
+          - A clear call to action
+          - Tone appropriate for the club's upscale atmosphere
+          
+          Format each idea clearly with numbers (1., 2., etc.) and make them ready to copy and paste.`
+        });
+      } else {
+        contents.push({
+          text: `Generate 3-5 creative social media post ideas for Facebook and Instagram for a fantasy gentlemen's club based on: "${prompt}".
+          
+          For each post idea, include:
+          - A compelling caption that's professional yet engaging
+          - Relevant hashtags (including club-specific ones)
+          - A clear call to action
+          - Tone appropriate for the club's upscale atmosphere
+          
+          Format each idea clearly with numbers (1., 2., etc.) and make them ready to copy and paste.`
+        });
+      }
+
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: contents,
+      });
+
+      const text = response.text || "";
+      // Split into individual post ideas
+      const ideas = text.split(/\n\n(?=\d+\.)/).filter(idea => idea.trim() !== '');
+      return ideas;
+    } catch (error) {
+      console.error("Error generating social media posts:", error);
+      return [];
+    }
+  }
+
+  async analyzeImageForSocialMedia(imageBase64: string, imageMimeType: string): Promise<string> {
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-pro",
+        contents: [
+          {
+            inlineData: {
+              data: imageBase64,
+              mimeType: imageMimeType,
+            },
+          },
+          {
+            text: `Analyze this image for social media content creation for a fantasy gentlemen's club. Describe:
+            - Main visual elements and composition
+            - Mood and atmosphere
+            - Key features that would appeal to the target audience
+            - Suggested messaging themes
+            - Recommended social media platforms
+            - Any text or branding visible in the image
+            
+            Keep the analysis professional and focused on marketing potential.`
+          }
+        ],
+      });
+
+      return response.text || "Unable to analyze image";
+    } catch (error) {
+      console.error("Error analyzing image for social media:", error);
+      return "Error analyzing image";
     }
   }
 

@@ -4,6 +4,7 @@ import { ChatInterface } from '@/components/chat/chat-interface';
 import { ContactForm } from '@/components/contacts/contact-form';
 import { FormBuilder } from '@/components/forms/form-builder';
 import { CalendarWidget } from '@/components/calendar/calendar-widget';
+import SocialMedia from '@/pages/social-media';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { ContactCard } from '@/components/contacts/contact-card';
@@ -14,7 +15,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { contactsApi } from '@/lib/api';
 import { Search, Filter } from 'lucide-react';
 
-type ModalType = 'none' | 'store-dancer' | 'create-form' | 'add-event' | 'edit-contact' | 'all-contacts';
+type ModalType = 'none' | 'store-dancer' | 'create-form' | 'add-event' | 'edit-contact' | 'all-contacts' | 'social-media';
 
 export default function Home() {
   const [activeModal, setActiveModal] = useState<ModalType>('none');
@@ -64,6 +65,9 @@ export default function Home() {
         break;
       case 'all-contacts':
         setActiveModal('all-contacts');
+        break;
+      case 'social-media':
+        setActiveModal('social-media');
         break;
       case 'create-new':
         setActiveModal('store-dancer');
@@ -158,6 +162,8 @@ export default function Home() {
         return 'Edit Contact';
       case 'all-contacts':
         return 'All Contacts';
+      case 'social-media':
+        return 'Social Media Generator';
       default:
         return '';
     }
@@ -255,6 +261,8 @@ export default function Home() {
             </ScrollArea>
           </div>
         );
+      case 'social-media':
+        return <SocialMedia />;
       default:
         return null;
     }
