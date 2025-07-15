@@ -7,7 +7,7 @@ This is a full-stack web application designed to help Bobby manage his fantasy g
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
-AI personality: Iron Man JARVIS - sophisticated, professional, courteous, and exceptionally helpful with subtle British sophistication. Always addresses user as "Sam".
+AI personality: Sam - chill, laid-back, and friendly AI assistant. Casual and relaxed like talking to a helpful buddy.
 
 ## System Architecture
 
@@ -42,8 +42,8 @@ AI personality: Iron Man JARVIS - sophisticated, professional, courteous, and ex
   - Notes and preferences storage
   - Search and filtering capabilities
 
-### 2. JARVIS AI Assistant
-- **Purpose**: Provide intelligent assistance for club operations with Iron Man's original AI personality
+### 2. Sam AI Assistant
+- **Purpose**: Provide intelligent assistance for club operations with a chill, friendly personality
 - **Features**:
   - Real-time WebSocket-based chat with persistent sessions
   - Context-aware responses using club data and conversation history
@@ -105,10 +105,10 @@ AI personality: Iron Man JARVIS - sophisticated, professional, courteous, and ex
   - Dynamic table creation through conversation
   - Flexible data storage with JSON-based rows
   - Table management (create, read, update, delete)
-  - Integration with JARVIS AI for seamless table operations
+  - Integration with Sam AI for seamless table operations
 
 ### 9. Chat History and Analytics
-- **Purpose**: Track and analyze all conversations with JARVIS
+- **Purpose**: Track and analyze all conversations with Sam
 - **Features**:
   - Persistent chat history storage by session
   - Conversation analytics and sentiment tracking

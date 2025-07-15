@@ -10,7 +10,7 @@ import { zfd } from "zod-form-data";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { JarvisAI } from "./services/gemini";
+import { SamAI } from "./services/gemini";
 
 const upload = multer({ 
   dest: 'uploads/',
@@ -19,7 +19,7 @@ const upload = multer({
 
 // WebSocket connection management
 const clients = new Set<WebSocket>();
-const jarvisSessions = new Map<string, JarvisAI>();
+const samSessions = new Map<string, SamAI>();
 
 function broadcastToClients(message: any) {
   const messageStr = JSON.stringify(message);
@@ -30,14 +30,14 @@ function broadcastToClients(message: any) {
   });
 }
 
-// Handle JARVIS actions
-async function handleJarvisAction(action: string, data: any) {
+// Handle Sam actions
+async function handleSamAction(action: string, data: any) {
   try {
     switch (action) {
       case 'CREATE_TABLE':
         if (data && data.tableName) {
-          const jarvis = new JarvisAI();
-          await jarvis.createDynamicTable(data);
+          const sam = new SamAI();
+          await sam.createDynamicTable(data);
         }
         break;
       
@@ -103,19 +103,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (message.type === 'chat') {
           const sessionId = message.sessionId || 'default';
           
-          // Get or create JARVIS session
-          if (!jarvisSessions.has(sessionId)) {
-            jarvisSessions.set(sessionId, new JarvisAI(sessionId));
+          // Get or create Sam session
+          if (!samSessions.has(sessionId)) {
+            samSessions.set(sessionId, new SamAI(sessionId));
           }
           
-          const jarvis = jarvisSessions.get(sessionId)!;
+          const sam = samSessions.get(sessionId)!;
           
-          // Process message with JARVIS
-          const result = await jarvis.processMessage(message.content);
+          // Process message with Sam
+          const result = await sam.processMessage(message.content);
           
           // Handle actions if needed
           if (result.action) {
-            await handleJarvisAction(result.action, result.data);
+            await handleSamAction(result.action, result.data);
           }
           
           // Send response back to client
