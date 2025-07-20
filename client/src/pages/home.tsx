@@ -17,7 +17,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { contactsApi } from '@/lib/api';
 import { Search, Filter, Menu } from 'lucide-react';
 
-type ModalType = 'none' | 'store-dancer' | 'create-form' | 'add-event' | 'edit-contact' | 'all-contacts' | 'social-media' | 'settings';
+type ModalType = 'none' | 'store-dancer' | 'create-form' | 'add-event' | 'edit-contact' | 'all-contacts' | 'social-media' | 'settings' | 'calendar' | 'sales';
 
 export default function Home() {
   const [activeModal, setActiveModal] = useState<ModalType>('none');
@@ -397,36 +397,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-gray-900 text-white">
-      {/* Mobile Header with Menu Button */}
-      <div className="md:hidden bg-gray-800 border-b border-gray-700 p-4 flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-            <span className="text-white text-sm font-bold">S</span>
-          </div>
-          <h1 className="text-lg font-semibold text-white">Sam AI</h1>
-        </div>
-        <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="sm">
-              <Menu className="w-5 h-5 text-gray-400" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="w-80 p-0 bg-gray-900 border-gray-700">
-            <Sidebar
-              onContactSelect={(contact) => {
-                handleContactSelect(contact);
-                setSidebarOpen(false);
-              }}
-              onQuickAction={(action) => {
-                handleQuickAction(action);
-                setSidebarOpen(false);
-              }}
-            />
-          </SheetContent>
-        </Sheet>
-      </div>
-
+    <div className="flex h-screen bg-gray-900 text-white">
       {/* Desktop Sidebar */}
       <div className="hidden md:block">
         <Sidebar
@@ -435,12 +406,44 @@ export default function Home() {
         />
       </div>
       
-      {/* Main Content Area with Voice Commands */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <ChatInterface onQuickAction={handleQuickAction} className="flex-1" />
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Mobile Header with Menu Button */}
+        <div className="md:hidden bg-gray-800 border-b border-gray-700 p-3 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+              <span className="text-white text-sm font-bold">S</span>
+            </div>
+            <h1 className="text-lg font-semibold text-white">Sam AI</h1>
+          </div>
+          <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="sm">
+                <Menu className="w-5 h-5 text-gray-400" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-80 p-0 bg-gray-900 border-gray-700">
+              <Sidebar
+                onContactSelect={(contact) => {
+                  handleContactSelect(contact);
+                  setSidebarOpen(false);
+                }}
+                onQuickAction={(action) => {
+                  handleQuickAction(action);
+                  setSidebarOpen(false);
+                }}
+              />
+            </SheetContent>
+          </Sheet>
+        </div>
+
+        {/* Chat Interface - Takes remaining space */}
+        <div className="flex-1 min-h-0">
+          <ChatInterface onQuickAction={handleQuickAction} />
+        </div>
         
-        {/* Voice Command Panel - Mobile optimized */}
-        <div className="p-2 md:p-4 bg-gray-800 border-t border-gray-700">
+        {/* Voice Command Panel - Compact for mobile */}
+        <div className="flex-shrink-0 p-2 md:p-3 bg-gray-800 border-t border-gray-700">
           <VoiceCommandIndicator onQuickAction={handleQuickAction} />
         </div>
       </div>

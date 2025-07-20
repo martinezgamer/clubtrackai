@@ -29,9 +29,10 @@ interface ChatMessage {
 
 interface ChatInterfaceProps {
   onQuickAction: (action: string) => void;
+  className?: string;
 }
 
-export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
+export function ChatInterface({ onQuickAction, className }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -489,9 +490,9 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
   };
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className={`flex flex-col h-full overflow-hidden ${className || ''}`}>
       {/* Chat Header */}
-      <div className="p-4 border-b border-gray-700 bg-gray-900">
+      <div className="flex-shrink-0 p-3 md:p-4 border-b border-gray-700 bg-gray-900">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
@@ -504,45 +505,15 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
               </p>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
-            {voiceSupported && (
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={handleVoiceToggle}
-                className={isListening ? 'text-red-400' : 'text-gray-400 hover:text-white'}
-              >
-                {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-              </Button>
-            )}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="text-gray-400 hover:text-white"
-                >
-                  <Paperclip className="w-4 h-4 mr-1" />
-                  <ChevronDown className="w-3 h-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={handleImageUpload}>
-                  <Image className="w-4 h-4 mr-2" />
-                  Upload Image
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleDocumentUpload}>
-                  <File className="w-4 h-4 mr-2" />
-                  Upload Document
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <div className="text-xs text-gray-500">
+            Connected • Ready
           </div>
         </div>
       </div>
 
-      {/* Chat Messages */}
-      <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
+      {/* Chat Messages - Scrollable container */}
+      <div className="flex-1 overflow-hidden">
+        <ScrollArea className="h-full p-3 md:p-4" ref={scrollAreaRef}>
         <div className="space-y-4">
           {messages.map((message) => (
             <MessageBubble
@@ -568,10 +539,11 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
             </div>
           )}
         </div>
-      </ScrollArea>
+        </ScrollArea>
+      </div>
 
       {/* Chat Input - Mobile optimized */}
-      <div className="p-2 md:p-4 border-t border-gray-700 bg-gray-900">
+      <div className="flex-shrink-0 p-2 md:p-4 border-t border-gray-700 bg-gray-900">
         <div className="flex items-center space-x-2 md:space-x-3">
           <div className="flex-1 relative">
             <Input
