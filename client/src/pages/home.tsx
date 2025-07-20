@@ -405,7 +405,7 @@ export default function Home() {
       <div className="flex-1 flex flex-col">
         <ChatInterface onQuickAction={handleQuickAction} className="flex-1" />
         
-        {/* Voice Command Panel - Fixed at bottom */}
+        {/* Voice Command Panel - Fixed infinite loop issue */}
         <div className="p-4 bg-gray-800 border-t border-gray-700">
           <VoiceCommandIndicator onQuickAction={handleQuickAction} />
         </div>

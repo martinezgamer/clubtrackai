@@ -94,7 +94,7 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
           setIsTyping(false);
           const aiMessage: ChatMessage = {
             id: `ai-${Date.now()}`,
-            content: lastMessage.content,
+            content: lastMessage.content || '',
             sender: 'ai',
             timestamp: lastMessage.timestamp || new Date().toISOString(),
             imageDescription: lastMessage.imageDescription,
@@ -393,7 +393,7 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
             if (typeof fileData === 'string') {
               base64Data = fileData.split(',')[1]; // Remove data URL prefix
             } else if (fileData instanceof ArrayBuffer) {
-              base64Data = btoa(String.fromCharCode(...new Uint8Array(fileData)));
+              base64Data = btoa(String.fromCharCode.apply(null, Array.from(new Uint8Array(fileData))));
             }
             
             const fileMessage = `I'm uploading a document: ${file.name}. Please process and analyze the content.`;

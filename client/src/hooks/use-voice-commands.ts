@@ -114,7 +114,7 @@ export function useVoiceCommands({ onQuickAction, isEnabled = true }: UseVoiceCo
     }
     
     return false;
-  }, [commands]);
+  }, []);
 
   const startListening = useCallback(() => {
     if (!recognition || !isEnabled) return;

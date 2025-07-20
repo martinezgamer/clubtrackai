@@ -93,7 +93,7 @@ export class FollowUpProcessor {
       const actionData = action.actionData as any;
       const response = await storage.getFormResponse(execution.responseId);
       
-      if (!response) return false;
+      if (!response || !response.contactId) return false;
 
       const contact = await storage.getContact(response.contactId);
       if (!contact) return false;
@@ -104,17 +104,19 @@ export class FollowUpProcessor {
       );
 
       // Store as conversation
-      await storage.createConversation({
-        contactId: contact.id,
-        userId: 1, // System user
-        message: personalizedMessage,
-        sender: 'assistant',
-        messageType: 'text',
-        metadata: {
-          followUpSequenceId: execution.sequenceId,
-          followUpActionId: execution.actionId
-        }
-      });
+      if (contact.id) {
+        await storage.createConversation({
+          contactId: contact.id,
+          userId: 1, // System user
+          message: personalizedMessage,
+          sender: 'assistant',
+          messageType: 'text',
+          metadata: JSON.stringify({
+            followUpSequenceId: execution.sequenceId,
+            followUpActionId: execution.actionId
+          })
+        });
+      }
 
       return true;
     } catch (error) {
@@ -128,7 +130,7 @@ export class FollowUpProcessor {
       const actionData = action.actionData as any;
       const response = await storage.getFormResponse(execution.responseId);
       
-      if (!response) return false;
+      if (!response || !response.contactId) return false;
 
       await storage.createMemoryItem({
         contactId: response.contactId,
@@ -152,7 +154,7 @@ export class FollowUpProcessor {
       const actionData = action.actionData as any;
       const response = await storage.getFormResponse(execution.responseId);
       
-      if (!response) return false;
+      if (!response || !response.contactId) return false;
 
       const contact = await storage.getContact(response.contactId);
       if (!contact) return false;
@@ -183,15 +185,13 @@ export class FollowUpProcessor {
       
       if (!response) return false;
 
-      const content = await geminiService.generateSocialMediaContent(
-        actionData.contentType || 'post',
-        actionData.topic || 'General update',
-        actionData.platform || 'general'
+      const content = await geminiService.generateSocialMediaPosts(
+        `Generate ${actionData.platform || 'general'} content. Topic: ${actionData.topic || 'General update'}. Type: ${actionData.contentType || 'post'}`
       );
 
       await storage.createSocialMediaContent({
-        title: content.title,
-        content: content.content,
+        title: typeof content === 'string' ? 'Generated Content' : content.title || 'Generated Content',
+        content: typeof content === 'string' ? content : content.content || content,
         contentType: actionData.contentType || 'post',
         platform: actionData.platform || 'general',
         imageUrl: null,
@@ -254,7 +254,8 @@ export class FollowUpProcessor {
     const actions = await storage.getFollowUpActionsBySequence(sequence.id);
     
     for (const action of actions) {
-      const scheduledFor = new Date(Date.now() + (action.delayMinutes * 60 * 1000));
+      const delayMs = (action.delayMinutes || 0) * 60 * 1000;
+      const scheduledFor = new Date(Date.now() + delayMs);
       
       await storage.createFollowUpExecution({
         responseId: response.id,

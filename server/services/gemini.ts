@@ -496,7 +496,7 @@ export class SamAI {
 // Legacy service for backward compatibility
 export const geminiService = {
   async generateResponse(message: string, history: any[] = []): Promise<string> {
-    const friday = new FridayAI();
+    const friday = new FRIDAY();
     const result = await friday.processMessage(message);
     return result.response;
   },
@@ -546,7 +546,9 @@ export const geminiService = {
       // Enhanced OCR - Text detection with structure
       if (textDetection[0].textAnnotations && textDetection[0].textAnnotations.length > 0) {
         const detectedText = textDetection[0].textAnnotations[0].description;
-        analysis += `📝 **OCR Text Found:**\n${detectedText}\n\n`;
+        if (detectedText) {
+          analysis += `📝 **OCR Text Found:**\n${detectedText}\n\n`;
+        }
       }
       
       // Document text detection for structured text
@@ -561,7 +563,7 @@ export const geminiService = {
       if (labelDetection[0].labelAnnotations && labelDetection[0].labelAnnotations.length > 0) {
         const labels = labelDetection[0].labelAnnotations
           .slice(0, 5)
-          .map(label => `${label.description} (${Math.round(label.score * 100)}%)`)
+          .map(label => `${label.description} (${Math.round((label.score || 0) * 100)}%)`)
           .join(', ');
         analysis += `🏷️ **Labels:** ${labels}\n`;
       }
@@ -576,7 +578,7 @@ export const geminiService = {
       if (objectDetection[0].localizedObjectAnnotations && objectDetection[0].localizedObjectAnnotations.length > 0) {
         const objects = objectDetection[0].localizedObjectAnnotations
           .slice(0, 3)
-          .map(obj => `${obj.name} (${Math.round(obj.score * 100)}%)`)
+          .map(obj => `${obj.name} (${Math.round((obj.score || 0) * 100)}%)`)
           .join(', ');
         analysis += `🎯 **Objects:** ${objects}\n`;
       }
@@ -635,7 +637,7 @@ export const geminiService = {
       return response.text || "Unable to read image";
     } catch (error) {
       console.error("Error analyzing with Gemini:", error);
-      return "Error reading image: " + (error.message || "Unknown error occurred");
+      return "Error reading image: " + (error instanceof Error ? error.message : "Unknown error occurred");
     }
   },
 
@@ -658,7 +660,7 @@ export const geminiService = {
             data: imageBase64,
             mimeType: imageMimeType
           }
-        });
+        } as any);
       }
 
       const response = await ai.models.generateContent({
@@ -717,7 +719,7 @@ export const geminiService = {
       return response.text || "Unable to analyze image";
     } catch (error) {
       console.error("Error analyzing image:", error);
-      return "Error analyzing image: " + (error.message || "Unknown error occurred");
+      return "Error analyzing image: " + (error instanceof Error ? error.message : "Unknown error occurred");
     }
   },
 
@@ -811,7 +813,7 @@ export const geminiService = {
       return `Document "${fileName}" received but format not fully supported for processing. Please try PDF or text files.`;
     } catch (error) {
       console.error("Document processing error:", error);
-      return `Failed to process document "${fileName}": ${error.message || "Unknown error"}`;
+      return `Failed to process document "${fileName}": ${error instanceof Error ? error.message : "Unknown error"}`;
     }
   }
 };

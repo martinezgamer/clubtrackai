@@ -60,7 +60,7 @@ export function ContactForm({ contact, onSave, onCancel }: ContactFormProps) {
   const createMutation = useMutation({
     mutationFn: (data: { contact: ContactFormData; photo?: File }) =>
       contactsApi.create(data.contact, data.photo),
-    onSuccess: (newContact) => {
+    onSuccess: (newContact: any) => {
       toast({
         title: "Contact created",
         description: `${newContact.name} has been added to your contacts.`,
@@ -80,7 +80,7 @@ export function ContactForm({ contact, onSave, onCancel }: ContactFormProps) {
   const updateMutation = useMutation({
     mutationFn: (data: { contact: ContactFormData; photo?: File }) =>
       contactsApi.update(contact.id, data.contact, data.photo),
-    onSuccess: (updatedContact) => {
+    onSuccess: (updatedContact: any) => {
       toast({
         title: "Contact updated",
         description: `${updatedContact.name} has been updated.`,

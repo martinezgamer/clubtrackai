@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,14 +33,16 @@ export function VoiceCommandIndicator({ onQuickAction, className }: VoiceCommand
     commands
   } = useVoiceCommands({ onQuickAction });
 
-  // Group commands by category
-  const commandsByCategory = commands.reduce((acc, command) => {
-    if (!acc[command.category]) {
-      acc[command.category] = [];
-    }
-    acc[command.category].push(command);
-    return acc;
-  }, {} as Record<string, typeof commands>);
+  // Group commands by category - memoize to prevent infinite updates
+  const commandsByCategory = useMemo(() => {
+    return commands.reduce((acc, command) => {
+      if (!acc[command.category]) {
+        acc[command.category] = [];
+      }
+      acc[command.category].push(command);
+      return acc;
+    }, {} as Record<string, typeof commands>);
+  }, [commands]);
 
   const toggleAudioFeedback = () => {
     setAudioEnabled(!audioEnabled);
