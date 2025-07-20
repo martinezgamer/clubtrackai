@@ -9,7 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { 
   Bot, Settings, Brain, CheckSquare, UserPlus, FileText, 
-  CalendarPlus, Clock, Phone, Calendar, Edit, Users, TrendingUp, Plus, Share2
+  CalendarPlus, Clock, Phone, Calendar, Edit, Users, TrendingUp, Plus, Share2, Shield
 } from 'lucide-react';
 import { contactsApi, memoryApi, calendarApi } from '@/lib/api';
 import { format } from 'date-fns';
@@ -290,7 +290,7 @@ export function Sidebar({ onContactSelect, onQuickAction }: SidebarProps) {
 
       {/* Quick Actions Bar */}
       <div className="p-4 border-t border-gray-700">
-        <div className="flex items-center justify-between">
+        <div className="grid grid-cols-2 gap-2">
           <Button 
             variant="ghost" 
             size="sm" 
@@ -317,6 +317,15 @@ export function Sidebar({ onContactSelect, onQuickAction }: SidebarProps) {
           >
             <TrendingUp className="w-4 h-4 mr-1" />
             Sales
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-gray-400 hover:text-white"
+            onClick={() => onQuickAction('user-management')}
+          >
+            <Shield className="w-4 h-4 mr-1" />
+            Users
           </Button>
         </div>
       </div>

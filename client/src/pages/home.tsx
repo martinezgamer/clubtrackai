@@ -85,6 +85,10 @@ export default function Home() {
       case 'settings':
         setActiveModal('settings');
         break;
+      case 'user-management':
+        // Navigate to user management page
+        window.location.href = '/user-management';
+        break;
       default:
         console.log('Unknown action:', action);
     }

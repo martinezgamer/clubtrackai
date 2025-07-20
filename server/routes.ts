@@ -4,9 +4,11 @@ import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { geminiService } from "./services/gemini";
 import { ttsService } from "./services/tts";
-import { insertContactSchema, insertFormSchema, insertCalendarEventSchema, insertMemoryItemSchema, insertFollowUpSequenceSchema, insertFollowUpActionSchema } from "@shared/schema";
+import { userManagementService } from "./services/user-management";
+import { insertContactSchema, insertFormSchema, insertCalendarEventSchema, insertMemoryItemSchema, insertFollowUpSequenceSchema, insertFollowUpActionSchema, insertUserSchema, insertClubSchema } from "@shared/schema";
 import { followUpProcessor } from "./services/follow-up-processor";
 import { zfd } from "zod-form-data";
+import { z } from "zod";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -395,7 +397,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/forms/generate', async (req, res) => {
     try {
       const { formType, context } = req.body;
-      const questions = await geminiService.generateFormQuestions(formType, context);
+      const questions = await geminiService.generateResponse(`Generate form questions for ${formType} with context: ${context}`);
       res.json({ questions });
     } catch (error) {
       res.status(500).json({ error: 'Failed to generate form questions' });
@@ -475,7 +477,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/social-media/generate', async (req, res) => {
     try {
       const { contentType, topic, platform } = req.body;
-      const content = await geminiService.generateSocialMediaContent(contentType, topic, platform);
+      const content = await geminiService.generateSocialMediaPosts(`Generate ${contentType} content for ${platform} about ${topic}`);
       res.json(content);
     } catch (error) {
       res.status(500).json({ error: 'Failed to generate social media content' });
@@ -671,6 +673,144 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Social media post generation error:', error);
       res.status(500).json({ error: 'Failed to generate social media posts' });
+    }
+  });
+
+  // User Management API
+  app.get('/api/users', async (req, res) => {
+    try {
+      const users = await userManagementService.getUsersWithDetails();
+      res.json(users);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch users' });
+    }
+  });
+
+  app.post('/api/users', async (req, res) => {
+    try {
+      const userData = insertUserSchema.extend({
+        clubIds: z.array(z.number()).optional(),
+      }).parse(req.body);
+      
+      const user = await userManagementService.createUser(userData);
+      res.json(user);
+    } catch (error) {
+      console.error('Create user error:', error);
+      res.status(400).json({ error: 'Invalid user data' });
+    }
+  });
+
+  app.patch('/api/users/:id', async (req, res) => {
+    try {
+      const { isActive } = req.body;
+      const user = await userManagementService.updateUserStatus(parseInt(req.params.id), isActive);
+      res.json(user);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update user' });
+    }
+  });
+
+  // Club Management API
+  app.get('/api/clubs', async (req, res) => {
+    try {
+      const clubs = await userManagementService.getClubs();
+      res.json(clubs);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch clubs' });
+    }
+  });
+
+  app.post('/api/clubs', async (req, res) => {
+    try {
+      const clubData = insertClubSchema.parse(req.body);
+      const club = await userManagementService.createClub(clubData);
+      res.json(club);
+    } catch (error) {
+      res.status(400).json({ error: 'Invalid club data' });
+    }
+  });
+
+  // Role Management API
+  app.get('/api/roles', async (req, res) => {
+    try {
+      const roles = await userManagementService.getRoles();
+      res.json(roles);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch roles' });
+    }
+  });
+
+  // Authentication API
+  app.post('/api/auth/login', async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      
+      if (!username || !password) {
+        return res.status(400).json({ error: 'Username and password required' });
+      }
+
+      const user = await userManagementService.verifyUser(username, password);
+      
+      if (!user) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+
+      // Set user session (basic implementation)
+      req.session = req.session || {};
+      (req.session as any).userId = user.id;
+      (req.session as any).username = user.username;
+      (req.session as any).isSuperUser = user.isSuperUser;
+
+      res.json({
+        id: user.id,
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        isSuperUser: user.isSuperUser,
+        role: user.role,
+        clubs: user.clubAssignments?.map(assignment => assignment.club) || []
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({ error: 'Login failed' });
+    }
+  });
+
+  app.post('/api/auth/logout', async (req, res) => {
+    try {
+      req.session = undefined;
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: 'Logout failed' });
+    }
+  });
+
+  app.get('/api/auth/me', async (req, res) => {
+    try {
+      const session = req.session as any;
+      
+      if (!session?.userId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const user = await userManagementService.getUsersWithDetails();
+      const currentUser = user.find(u => u.id === session.userId);
+      
+      if (!currentUser) {
+        return res.status(401).json({ error: 'User not found' });
+      }
+
+      res.json({
+        id: currentUser.id,
+        username: currentUser.username,
+        firstName: currentUser.firstName,
+        lastName: currentUser.lastName,
+        isSuperUser: currentUser.isSuperUser,
+        role: currentUser.role,
+        clubs: currentUser.clubAssignments?.map(assignment => assignment.club) || []
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get user info' });
     }
   });
 

@@ -3,13 +3,60 @@ import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Clubs table
+export const clubs = pgTable("clubs", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  displayName: text("display_name").notNull(),
+  address: text("address"),
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  settings: json("settings").$type<Record<string, any>>(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// User roles table
+export const userRoles = pgTable("user_roles", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  displayName: text("display_name").notNull(),
+  description: text("description"),
+  permissions: json("permissions").$type<string[]>().notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Users table (Bobby and other users)
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   email: text("email"),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  roleId: integer("role_id").references(() => userRoles.id),
+  isActive: boolean("is_active").default(true),
+  isSuperUser: boolean("is_super_user").default(false),
+  lastLoginAt: timestamp("last_login_at"),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// User club assignments table (many-to-many)
+export const userClubAssignments = pgTable("user_club_assignments", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  clubId: integer("club_id").references(() => clubs.id),
+  isDefault: boolean("is_default").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// User sessions table for authentication
+export const userSessions = pgTable("user_sessions", {
+  sid: text("sid").primaryKey(),
+  sess: json("sess").$type<any>().notNull(),
+  expire: timestamp("expire").notNull(),
 });
 
 // Contacts table (dancers, staff, regulars, etc.)
@@ -24,6 +71,7 @@ export const contacts = pgTable("contacts", {
   status: text("status").default("active"), // active, inactive, problematic
   notes: text("notes"),
   preferences: json("preferences").$type<Record<string, any>>(),
+  clubId: integer("club_id").references(() => clubs.id),
   lastContact: timestamp("last_contact"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -222,7 +270,40 @@ export const dynamicTableData = pgTable("dynamic_table_data", {
 });
 
 // Define relations
-export const contactsRelations = relations(contacts, ({ many }) => ({
+export const clubsRelations = relations(clubs, ({ many }) => ({
+  contacts: many(contacts),
+  userAssignments: many(userClubAssignments),
+}));
+
+export const userRolesRelations = relations(userRoles, ({ many }) => ({
+  users: many(users),
+}));
+
+export const usersRelations = relations(users, ({ one, many }) => ({
+  role: one(userRoles, {
+    fields: [users.roleId],
+    references: [userRoles.id],
+  }),
+  clubAssignments: many(userClubAssignments),
+  conversations: many(conversations),
+}));
+
+export const userClubAssignmentsRelations = relations(userClubAssignments, ({ one }) => ({
+  user: one(users, {
+    fields: [userClubAssignments.userId],
+    references: [users.id],
+  }),
+  club: one(clubs, {
+    fields: [userClubAssignments.clubId],
+    references: [clubs.id],
+  }),
+}));
+
+export const contactsRelations = relations(contacts, ({ one, many }) => ({
+  club: one(clubs, {
+    fields: [contacts.clubId],
+    references: [clubs.id],
+  }),
   conversations: many(conversations),
   formResponses: many(formResponses),
   memoryItems: many(memoryItems),
@@ -294,10 +375,34 @@ export const followUpExecutionsRelations = relations(followUpExecutions, ({ one 
 }));
 
 // Insert schemas
+export const insertClubSchema = createInsertSchema(clubs).pick({
+  name: true,
+  displayName: true,
+  address: true,
+  description: true,
+  settings: true,
+});
+
+export const insertUserRoleSchema = createInsertSchema(userRoles).pick({
+  name: true,
+  displayName: true,
+  description: true,
+  permissions: true,
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
   email: true,
+  firstName: true,
+  lastName: true,
+  roleId: true,
+});
+
+export const insertUserClubAssignmentSchema = createInsertSchema(userClubAssignments).pick({
+  userId: true,
+  clubId: true,
+  isDefault: true,
 });
 
 export const insertContactSchema = createInsertSchema(contacts).pick({
@@ -310,6 +415,7 @@ export const insertContactSchema = createInsertSchema(contacts).pick({
   status: true,
   notes: true,
   preferences: true,
+  clubId: true,
 });
 
 export const insertConversationSchema = createInsertSchema(conversations).pick({
@@ -388,8 +494,17 @@ export const insertSalesTransactionSchema = createInsertSchema(salesTransactions
 });
 
 // Types
+export type Club = typeof clubs.$inferSelect;
+export type InsertClub = z.infer<typeof insertClubSchema>;
+
+export type UserRole = typeof userRoles.$inferSelect;
+export type InsertUserRole = z.infer<typeof insertUserRoleSchema>;
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+
+export type UserClubAssignment = typeof userClubAssignments.$inferSelect;
+export type InsertUserClubAssignment = z.infer<typeof insertUserClubAssignmentSchema>;
 
 export type Contact = typeof contacts.$inferSelect;
 export type InsertContact = z.infer<typeof insertContactSchema>;

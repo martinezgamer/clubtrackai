@@ -1,7 +1,10 @@
 import express, { type Request, Response, NextFunction } from "express";
+import session from "express-session";
+import connectPg from "connect-pg-simple";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { followUpProcessor } from "./services/follow-up-processor";
+import { userManagementService } from "./services/user-management";
 
 // Global error handlers
 process.on('unhandledRejection', (reason, promise) => {
@@ -17,6 +20,24 @@ process.on('uncaughtException', (error) => {
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Session setup
+const pgSession = connectPg(session);
+app.use(session({
+  store: new pgSession({
+    conString: process.env.DATABASE_URL!,
+    createTableIfMissing: true,
+    tableName: 'user_sessions'
+  }),
+  secret: process.env.SESSION_SECRET || 'bobby-club-management-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: false, // Set to true in production with HTTPS
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -81,5 +102,9 @@ app.use((req, res, next) => {
     
     // Initialize follow-up processor
     log('Initializing follow-up processor...');
+    
+    // Initialize user management defaults
+    log('Initializing user management defaults...');
+    userManagementService.initializeDefaults();
   });
 })();
