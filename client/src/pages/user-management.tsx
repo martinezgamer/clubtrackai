@@ -105,11 +105,15 @@ export default function UserManagement() {
 
   // Create club mutation
   const createClubMutation = useMutation({
-    mutationFn: (clubData: typeof newClubData) => apiRequest('/api/clubs', {
-      method: 'POST',
-      body: clubData,
-    }),
-    onSuccess: () => {
+    mutationFn: (clubData: typeof newClubData) => {
+      console.log('Sending club data:', clubData);
+      return apiRequest('/api/clubs', {
+        method: 'POST',
+        body: clubData,
+      });
+    },
+    onSuccess: (data) => {
+      console.log('Club created successfully:', data);
       toast({ title: "Club created successfully" });
       setIsCreateClubOpen(false);
       setNewClubData({
@@ -120,8 +124,13 @@ export default function UserManagement() {
       });
       queryClient.invalidateQueries({ queryKey: ['/api/clubs'] });
     },
-    onError: () => {
-      toast({ title: "Failed to create club", variant: "destructive" });
+    onError: (error) => {
+      console.error('Club creation failed:', error);
+      toast({ 
+        title: "Failed to create club", 
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+        variant: "destructive" 
+      });
     },
   });
 
@@ -150,6 +159,7 @@ export default function UserManagement() {
       toast({ title: "Please fill in all required fields", variant: "destructive" });
       return;
     }
+    console.log('Creating club with data:', newClubData);
     createClubMutation.mutate(newClubData);
   };
 

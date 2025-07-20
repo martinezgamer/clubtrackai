@@ -189,8 +189,15 @@ export class UserManagementService {
 
   // Create club
   async createClub(clubData: InsertClub) {
-    const [newClub] = await db.insert(clubs).values(clubData).returning();
-    return newClub;
+    try {
+      console.log('Attempting to create club with data:', clubData);
+      const [newClub] = await db.insert(clubs).values(clubData).returning();
+      console.log('Successfully created club:', newClub);
+      return newClub;
+    } catch (error) {
+      console.error('Database error creating club:', error);
+      throw new Error(`Failed to create club: ${error instanceof Error ? error.message : 'Unknown database error'}`);
+    }
   }
 
   // Get all clubs

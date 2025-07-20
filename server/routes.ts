@@ -722,11 +722,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/clubs', async (req, res) => {
     try {
+      console.log('Creating club with data:', req.body);
       const clubData = insertClubSchema.parse(req.body);
+      console.log('Parsed club data:', clubData);
       const club = await userManagementService.createClub(clubData);
+      console.log('Created club:', club);
       res.json(club);
     } catch (error) {
-      res.status(400).json({ error: 'Invalid club data' });
+      console.error('Club creation error:', error);
+      res.status(400).json({ 
+        error: 'Failed to create club', 
+        details: error instanceof Error ? error.message : 'Unknown error' 
+      });
     }
   });
 

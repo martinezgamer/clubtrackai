@@ -380,7 +380,9 @@ export const insertClubSchema = createInsertSchema(clubs).pick({
   displayName: true,
   address: true,
   description: true,
-  settings: true,
+}).extend({
+  address: z.string().optional(),
+  description: z.string().optional(),
 });
 
 export const insertUserRoleSchema = createInsertSchema(userRoles).pick({
