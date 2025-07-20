@@ -17,33 +17,44 @@ import { format } from 'date-fns';
 interface SidebarProps {
   onContactSelect: (contact: any) => void;
   onQuickAction: (action: string) => void;
+  contacts?: any[];
+  memoryItems?: any[];
+  todaysEvents?: any[];
 }
 
-export function Sidebar({ onContactSelect, onQuickAction }: SidebarProps) {
+export function Sidebar({ onContactSelect, onQuickAction, contacts = [], memoryItems = [], todaysEvents = [] }: SidebarProps) {
   const [activeTab, setActiveTab] = useState('memory');
 
-  const { data: contacts = [] } = useQuery({
+  // Use provided data if available, fallback to queries if not
+  const { data: fallbackContacts = [] } = useQuery({
     queryKey: ['/api/contacts'],
     queryFn: () => contactsApi.getAll({ status: 'active' }),
+    enabled: !contacts?.length,
   });
 
-  const { data: memoryItems = [] } = useQuery({
+  const { data: fallbackMemoryItems = [] } = useQuery({
     queryKey: ['/api/memory'],
     queryFn: () => memoryApi.getAll(),
+    enabled: !memoryItems?.length,
   });
 
-  const { data: todaysEvents = [] } = useQuery({
+  const { data: fallbackTodaysEvents = [] } = useQuery({
     queryKey: ['/api/calendar/events', new Date().toISOString().split('T')[0]],
     queryFn: () => calendarApi.getEvents(
       new Date().toISOString().split('T')[0],
       new Date().toISOString().split('T')[0]
     ),
+    enabled: !todaysEvents?.length,
   });
 
-  // Ensure data is always an array
-  const safeContacts = Array.isArray(contacts) ? contacts : [];
-  const safeMemoryItems = Array.isArray(memoryItems) ? memoryItems : [];
-  const safeTodaysEvents = Array.isArray(todaysEvents) ? todaysEvents : [];
+  // Use provided data or fallback to individual queries
+  const finalContacts = (contacts && contacts.length > 0) ? contacts : fallbackContacts;
+  const finalMemoryItems = (memoryItems && memoryItems.length > 0) ? memoryItems : fallbackMemoryItems;
+  const finalTodaysEvents = (todaysEvents && todaysEvents.length > 0) ? todaysEvents : fallbackTodaysEvents;
+  
+  const safeContacts = Array.isArray(finalContacts) ? finalContacts : [];
+  const safeMemoryItems = Array.isArray(finalMemoryItems) ? finalMemoryItems : [];
+  const safeTodaysEvents = Array.isArray(finalTodaysEvents) ? finalTodaysEvents : [];
 
   const getContactInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();

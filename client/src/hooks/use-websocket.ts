@@ -41,18 +41,20 @@ export function useWebSocket(url: string): UseWebSocketReturn {
         }
       };
       
-      ws.current.onclose = () => {
+      ws.current.onclose = (event) => {
         setReadyState(WebSocket.CLOSED);
-        console.log('WebSocket disconnected');
+        console.log('WebSocket disconnected', event.code, event.reason);
         
-        // Attempt to reconnect after 3 seconds
-        const timeout = setTimeout(() => {
-          if (ws.current?.readyState === WebSocket.CLOSED) {
-            connect();
-          }
-        }, 3000);
-        
-        reconnectTimeouts.current.push(timeout);
+        // Only reconnect if it wasn't a normal close (1000) or manual close
+        if (event.code !== 1000 && event.code !== 1001) {
+          const timeout = setTimeout(() => {
+            if (ws.current?.readyState === WebSocket.CLOSED) {
+              connect();
+            }
+          }, 5000); // Increased delay to 5 seconds
+          
+          reconnectTimeouts.current.push(timeout);
+        }
       };
       
       ws.current.onerror = (error) => {

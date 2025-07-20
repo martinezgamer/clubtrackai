@@ -14,7 +14,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { contactsApi } from '@/lib/api';
+import { contactsApi, memoryApi, calendarApi } from '@/lib/api';
 import { Search, Filter, Menu } from 'lucide-react';
 import WeatherWidget from '@/components/weather/weather-widget';
 
@@ -28,6 +28,25 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Shared queries for both desktop and mobile sidebars
+  const { data: sidebarContacts = [] } = useQuery({
+    queryKey: ['/api/contacts'],
+    queryFn: () => contactsApi.getAll({ status: 'active' }),
+  });
+
+  const { data: memoryItems = [] } = useQuery({
+    queryKey: ['/api/memory'],
+    queryFn: () => memoryApi.getAll(),
+  });
+
+  const { data: todaysEvents = [] } = useQuery({
+    queryKey: ['/api/calendar/events', new Date().toISOString().split('T')[0]],
+    queryFn: () => calendarApi.getEvents(
+      new Date().toISOString().split('T')[0],
+      new Date().toISOString().split('T')[0]
+    ),
+  });
 
   const { data: contacts = [], isLoading: contactsLoading } = useQuery({
     queryKey: ['/api/contacts', roleFilter],
@@ -150,9 +169,9 @@ export default function Home() {
   };
 
   const safeContacts = Array.isArray(contacts) ? contacts : [];
-  const filteredContacts = safeContacts.filter(contact => 
-    contact.name.toLowerCase().includes(contactsFilter.toLowerCase()) ||
-    (contact.nickname && contact.nickname.toLowerCase().includes(contactsFilter.toLowerCase()))
+  const filteredContacts = safeContacts.filter((contact: any) => 
+    contact?.name?.toLowerCase().includes(contactsFilter.toLowerCase()) ||
+    (contact?.nickname && contact.nickname.toLowerCase().includes(contactsFilter.toLowerCase()))
   );
 
   const getModalTitle = () => {
@@ -408,6 +427,9 @@ export default function Home() {
         <Sidebar
           onContactSelect={handleContactSelect}
           onQuickAction={handleQuickAction}
+          contacts={Array.isArray(sidebarContacts) ? sidebarContacts : []}
+          memoryItems={Array.isArray(memoryItems) ? memoryItems : []}
+          todaysEvents={Array.isArray(todaysEvents) ? todaysEvents : []}
         />
       </div>
       
@@ -442,6 +464,9 @@ export default function Home() {
                   handleQuickAction(action);
                   setSidebarOpen(false);
                 }}
+                contacts={Array.isArray(sidebarContacts) ? sidebarContacts : []}
+                memoryItems={Array.isArray(memoryItems) ? memoryItems : []}
+                todaysEvents={Array.isArray(todaysEvents) ? todaysEvents : []}
               />
             </SheetContent>
           </Sheet>
