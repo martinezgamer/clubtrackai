@@ -9,7 +9,7 @@ import { useTextToSpeech } from '@/hooks/use-text-to-speech';
 import { MessageBubble } from './message-bubble';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { 
-  Mic, MicOff, Camera, Paperclip, Send, Calendar, 
+  Mic, MicOff, Paperclip, Send, Calendar, 
   Users, TrendingUp, FileText, Loader2, Image,
   File, ChevronDown
 } from 'lucide-react';
@@ -49,7 +49,8 @@ export function ChatInterface({ onQuickAction, className }: ChatInterfaceProps) 
     startListening, 
     stopListening, 
     resetTranscript,
-    isSupported: voiceSupported 
+    isSupported: voiceSupported,
+    error 
   } = useVoiceRecognition();
   
   const { speak, stop, isSpeaking } = useTextToSpeech();
@@ -245,7 +246,7 @@ export function ChatInterface({ onQuickAction, className }: ChatInterfaceProps) 
       
       return () => clearTimeout(timer);
     }
-  }, [transcript, isListening, isContinuousMode, isSpeaking, startListening]);
+  }, [transcript, isListening, isContinuousMode, isSpeaking, startListening, handleSendMessage, resetTranscript]);
 
   // Keyboard shortcuts for voice activation
   useEffect(() => {

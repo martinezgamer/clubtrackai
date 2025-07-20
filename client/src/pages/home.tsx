@@ -4,7 +4,7 @@ import { ChatInterface } from '@/components/chat/chat-interface';
 import { ContactForm } from '@/components/contacts/contact-form';
 import { FormBuilder } from '@/components/forms/form-builder';
 import { CalendarWidget } from '@/components/calendar/calendar-widget';
-import { VoiceCommandIndicator } from '@/components/voice/voice-command-indicator';
+
 import SocialMedia from '@/pages/social-media';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -447,10 +447,7 @@ export default function Home() {
           <ChatInterface onQuickAction={handleQuickAction} />
         </div>
         
-        {/* Voice Command Panel - Compact for mobile */}
-        <div className="flex-shrink-0 p-2 md:p-3 bg-gray-800 border-t border-gray-700">
-          <VoiceCommandIndicator onQuickAction={handleQuickAction} />
-        </div>
+        
       </div>
       
       <Dialog open={activeModal !== 'none'} onOpenChange={handleModalClose}>
