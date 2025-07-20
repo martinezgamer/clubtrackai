@@ -766,11 +766,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { username, password } = req.body;
       
+      console.log('Login attempt for username:', username);
+      
       if (!username || !password) {
         return res.status(400).json({ error: 'Username and password required' });
       }
 
       const user = await userManagementService.verifyUser(username, password);
+      
+      console.log('User verification result:', user ? 'SUCCESS' : 'FAILED');
       
       if (!user) {
         return res.status(401).json({ error: 'Invalid credentials' });

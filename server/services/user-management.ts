@@ -172,13 +172,18 @@ export class UserManagementService {
 
   // Verify user credentials
   async verifyUser(username: string, password: string) {
+    console.log('Verifying user:', username);
     const user = await this.getUserByUsername(username);
     
+    console.log('Found user:', user ? `${user.username} (active: ${user.isActive})` : 'NOT FOUND');
+    
     if (!user || !user.isActive) {
+      console.log('User verification failed: User not found or inactive');
       return null;
     }
 
     const isValidPassword = await bcrypt.compare(password, user.password);
+    console.log('Password verification:', isValidPassword ? 'SUCCESS' : 'FAILED');
     
     if (!isValidPassword) {
       return null;
