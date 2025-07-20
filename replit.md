@@ -1,4 +1,4 @@
-# Bobby's Club Management System
+# Smart Tools 4U - AI Club Management System
 
 ## Overview
 
@@ -8,6 +8,7 @@ This is a full-stack web application designed to help Bobby manage his fantasy g
 
 Preferred communication style: Simple, everyday language.
 AI personality: Sam - chill, laid-back, and friendly AI assistant. Casual and relaxed like talking to a helpful buddy.
+Company branding: Smart Tools 4U with tagline "AI and people meet as one" - integrated throughout the application interface.
 
 ## Recent Updates (July 20, 2025)
 

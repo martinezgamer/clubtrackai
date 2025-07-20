@@ -416,10 +416,15 @@ export default function Home() {
         {/* Mobile Header with Menu Button */}
         <div className="md:hidden bg-gray-800 border-b border-gray-700 p-3 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-              <span className="text-white text-sm font-bold">S</span>
+            <img 
+              src="/attached_assets/Smart Tools 4U Logo Design_1753040464056.png" 
+              alt="Smart Tools 4U" 
+              className="w-8 h-8 rounded object-contain bg-white/10 p-1"
+            />
+            <div>
+              <h1 className="text-sm font-semibold text-white">Smart Tools 4U</h1>
+              <p className="text-xs text-gray-400 leading-tight">AI meets people</p>
             </div>
-            <h1 className="text-lg font-semibold text-white">Sam AI</h1>
           </div>
           <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
             <SheetTrigger asChild>

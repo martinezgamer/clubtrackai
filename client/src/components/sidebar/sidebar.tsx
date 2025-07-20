@@ -73,12 +73,14 @@ export function Sidebar({ onContactSelect, onQuickAction }: SidebarProps) {
       <div className="p-4 border-b border-gray-700">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-              <Bot className="w-5 h-5 text-white" />
-            </div>
+            <img 
+              src="/attached_assets/Smart Tools 4U Logo Design_1753040464056.png" 
+              alt="Smart Tools 4U" 
+              className="w-10 h-10 rounded-lg object-contain bg-white/10 p-1"
+            />
             <div>
-              <h1 className="text-lg font-semibold text-white">Club AI</h1>
-              <p className="text-sm text-gray-400">Bobby's Assistant</p>
+              <h1 className="text-lg font-semibold text-white">Smart Tools 4U</h1>
+              <p className="text-sm text-gray-400">AI and people meet as one</p>
             </div>
           </div>
           <Button variant="ghost" size="sm" onClick={() => onQuickAction('settings')}>
@@ -150,7 +152,7 @@ export function Sidebar({ onContactSelect, onQuickAction }: SidebarProps) {
             <div className="p-4 border-b border-gray-700">
               <h3 className="text-sm font-medium text-gray-300 mb-3">Recent Recalls</h3>
               <div className="space-y-2">
-                {safeMemoryItems.slice(0, 3).map((item) => (
+                {safeMemoryItems.slice(0, 3).map((item: any) => (
                   <Card key={item.id} className="bg-gray-800 border-gray-700">
                     <CardContent className="p-3">
                       <p className="text-sm text-white">{item.title}</p>
@@ -168,7 +170,7 @@ export function Sidebar({ onContactSelect, onQuickAction }: SidebarProps) {
             <div className="p-4 border-b border-gray-700">
               <h3 className="text-sm font-medium text-gray-300 mb-3">Active Contacts</h3>
               <div className="space-y-2">
-                {safeContacts.slice(0, 10).map((contact) => (
+                {safeContacts.slice(0, 10).map((contact: any) => (
                   <div 
                     key={contact.id}
                     className="flex items-center space-x-3 p-2 hover:bg-gray-800 rounded-lg transition-colors cursor-pointer"
@@ -199,7 +201,7 @@ export function Sidebar({ onContactSelect, onQuickAction }: SidebarProps) {
                 {safeTodaysEvents.length === 0 ? (
                   <p className="text-sm text-gray-400">No events scheduled for today</p>
                 ) : (
-                  safeTodaysEvents.map((event) => (
+                  safeTodaysEvents.map((event: any) => (
                     <Card key={event.id} className="bg-gray-800 border-gray-700">
                       <CardContent className="p-3">
                         <div className="flex items-center justify-between">
