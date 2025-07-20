@@ -16,7 +16,7 @@ interface UseVoiceCommandsProps {
 export function useVoiceCommands({ onQuickAction, isEnabled = true }: UseVoiceCommandsProps = {}) {
   const [isListening, setIsListening] = useState(false);
   const [lastCommand, setLastCommand] = useState<string>('');
-  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
+  const [recognition, setRecognition] = useState<any | null>(null);
   const [, setLocation] = useLocation();
   const commandTimeoutRef = useRef<NodeJS.Timeout>();
 
@@ -156,12 +156,12 @@ export function useVoiceCommands({ onQuickAction, isEnabled = true }: UseVoiceCo
   // Initialize speech recognition
   useEffect(() => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      console.warn('Speech recognition not supported');
+      // Speech recognition not available in this browser
       return;
     }
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognitionInstance = new SpeechRecognition();
+    const recognitionInstance = new SpeechRecognition() as any;
     
     recognitionInstance.continuous = false;
     recognitionInstance.interimResults = false;
@@ -172,7 +172,7 @@ export function useVoiceCommands({ onQuickAction, isEnabled = true }: UseVoiceCo
       console.log('Voice command recognition started');
     };
 
-    recognitionInstance.onresult = (event) => {
+    recognitionInstance.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
       console.log('Voice command heard:', transcript);
       
@@ -188,7 +188,7 @@ export function useVoiceCommands({ onQuickAction, isEnabled = true }: UseVoiceCo
       }
     };
 
-    recognitionInstance.onerror = (event) => {
+    recognitionInstance.onerror = (event: any) => {
       console.error('Voice recognition error:', event.error);
       setIsListening(false);
       

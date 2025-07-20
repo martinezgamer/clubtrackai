@@ -47,7 +47,7 @@ export function useVoiceRecognition(): UseVoiceRecognitionReturn {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   const isSupported = typeof window !== 'undefined' && 
-    (window.SpeechRecognition || window.webkitSpeechRecognition);
+    !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 
   useEffect(() => {
     if (!isSupported) return;

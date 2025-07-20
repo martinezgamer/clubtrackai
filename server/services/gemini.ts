@@ -496,8 +496,8 @@ export class SamAI {
 // Legacy service for backward compatibility
 export const geminiService = {
   async generateResponse(message: string, history: any[] = []): Promise<string> {
-    const friday = new FRIDAY();
-    const result = await friday.processMessage(message);
+    const sam = new SamAI();
+    const result = await sam.processMessage(message);
     return result.response;
   },
 
@@ -536,7 +536,7 @@ export const geminiService = {
         visionClient.documentTextDetection({ image: { content: imageBuffer } }),
         visionClient.labelDetection({ image: { content: imageBuffer } }),
         visionClient.faceDetection({ image: { content: imageBuffer } }),
-        visionClient.objectLocalization({ image: { content: imageBuffer } }),
+        visionClient.objectLocalization?.({ image: { content: imageBuffer } }) || Promise.resolve([{}]),
         visionClient.logoDetection({ image: { content: imageBuffer } }),
         visionClient.landmarkDetection({ image: { content: imageBuffer } })
       ]);
@@ -575,12 +575,15 @@ export const geminiService = {
       }
       
       // Object detection
-      if (objectDetection[0].localizedObjectAnnotations && objectDetection[0].localizedObjectAnnotations.length > 0) {
-        const objects = objectDetection[0].localizedObjectAnnotations
-          .slice(0, 3)
-          .map(obj => `${obj.name} (${Math.round((obj.score || 0) * 100)}%)`)
-          .join(', ');
-        analysis += `🎯 **Objects:** ${objects}\n`;
+      if (objectDetection && objectDetection[0] && typeof objectDetection[0] === 'object' && 'localizedObjectAnnotations' in objectDetection[0]) {
+        const annotations = (objectDetection[0] as any).localizedObjectAnnotations;
+        if (annotations && Array.isArray(annotations) && annotations.length > 0) {
+          const objects = annotations
+            .slice(0, 3)
+            .map((obj: any) => `${obj.name} (${Math.round((obj.score || 0) * 100)}%)`)
+            .join(', ');
+          analysis += `🎯 **Objects:** ${objects}\n`;
+        }
       }
       
       // Logo detection

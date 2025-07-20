@@ -63,27 +63,45 @@ export default function UserManagement() {
   // Fetch users with roles and club assignments
   const { data: users = [], isLoading: usersLoading } = useQuery({
     queryKey: ['/api/users'],
-    queryFn: () => apiRequest('/api/users'),
+    queryFn: async () => {
+      const response = await fetch('/api/users', { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to fetch users');
+      return response.json();
+    },
   });
 
   // Fetch clubs
   const { data: clubs = [] } = useQuery({
     queryKey: ['/api/clubs'],
-    queryFn: () => apiRequest('/api/clubs'),
+    queryFn: async () => {
+      const response = await fetch('/api/clubs', { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to fetch clubs');
+      return response.json();
+    },
   });
 
   // Fetch roles
   const { data: roles = [] } = useQuery({
     queryKey: ['/api/roles'],
-    queryFn: () => apiRequest('/api/roles'),
+    queryFn: async () => {
+      const response = await fetch('/api/roles', { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to fetch roles');
+      return response.json();
+    },
   });
 
   // Create user mutation
   const createUserMutation = useMutation({
-    mutationFn: (userData: typeof newUserData) => apiRequest('/api/users', {
-      method: 'POST',
-      body: userData,
-    }),
+    mutationFn: async (userData: typeof newUserData) => {
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData),
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to create user');
+      return response.json();
+    },
     onSuccess: () => {
       toast({ title: "User created successfully" });
       setIsCreateUserOpen(false);
@@ -105,12 +123,16 @@ export default function UserManagement() {
 
   // Create club mutation
   const createClubMutation = useMutation({
-    mutationFn: (clubData: typeof newClubData) => {
+    mutationFn: async (clubData: typeof newClubData) => {
       console.log('Sending club data:', clubData);
-      return apiRequest('/api/clubs', {
+      const response = await fetch('/api/clubs', {
         method: 'POST',
-        body: clubData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(clubData),
+        credentials: 'include',
       });
+      if (!response.ok) throw new Error('Failed to create club');
+      return response.json();
     },
     onSuccess: (data) => {
       console.log('Club created successfully:', data);
@@ -136,12 +158,16 @@ export default function UserManagement() {
 
   // Toggle user active status
   const toggleUserMutation = useMutation({
-    mutationFn: ({ userId, isActive }: { userId: number; isActive: boolean }) => {
+    mutationFn: async ({ userId, isActive }: { userId: number; isActive: boolean }) => {
       console.log('Toggling user status:', { userId, isActive });
-      return apiRequest(`/api/users/${userId}`, {
+      const response = await fetch(`/api/users/${userId}`, {
         method: 'PATCH',
-        body: { isActive },
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive }),
+        credentials: 'include',
       });
+      if (!response.ok) throw new Error('Failed to update user status');
+      return response.json();
     },
     onSuccess: (data) => {
       console.log('User status updated:', data);

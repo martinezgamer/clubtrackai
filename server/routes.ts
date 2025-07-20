@@ -526,7 +526,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const imageBase64 = fs.readFileSync(req.file.path, 'base64');
-      const analysis = await geminiService.analyzeImage(imageBase64);
+      const analysis = await geminiService.readImage(imageBase64, req.file.mimetype);
       
       // Clean up uploaded file
       fs.unlinkSync(req.file.path);
@@ -665,8 +665,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const posts = await geminiService.generateSocialMediaPosts(
         prompt || '',
-        imageBase64,
-        imageMimeType
+        imageBase64 || undefined,
+        imageMimeType || undefined
       );
 
       res.json({ posts });
@@ -797,8 +797,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/auth/logout', async (req, res) => {
     try {
-      req.session = undefined;
-      res.json({ success: true });
+      if (req.session && req.session.destroy) {
+        req.session.destroy(() => {
+          res.json({ success: true });
+        });
+      } else {
+        res.json({ success: true });
+      }
     } catch (error) {
       res.status(500).json({ error: 'Logout failed' });
     }
