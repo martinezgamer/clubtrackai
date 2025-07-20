@@ -702,10 +702,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch('/api/users/:id', async (req, res) => {
     try {
-      const { isActive } = req.body;
-      const user = await userManagementService.updateUserStatus(parseInt(req.params.id), isActive);
+      console.log('Updating user with data:', req.body);
+      const userId = parseInt(req.params.id);
+      const { isActive, roleId, isSuperUser } = req.body;
+      
+      let user;
+      if (isActive !== undefined) {
+        user = await userManagementService.updateUserStatus(userId, isActive);
+      } else if (roleId !== undefined || isSuperUser !== undefined) {
+        user = await userManagementService.updateUserRole(userId, roleId, isSuperUser);
+      } else {
+        return res.status(400).json({ error: 'No valid update fields provided' });
+      }
+      
       res.json(user);
     } catch (error) {
+      console.error('User update error:', error);
       res.status(500).json({ error: 'Failed to update user' });
     }
   });

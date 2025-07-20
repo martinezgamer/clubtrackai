@@ -80,24 +80,29 @@ export class UserManagementService {
 
       // Create Bobby as super admin if he doesn't exist
       const existingBobby = await db.select().from(users).where(eq(users.username, 'bobby'));
+      const superAdminRole = await db.select().from(userRoles).where(eq(userRoles.name, 'super_admin'));
       
-      if (existingBobby.length === 0) {
-        const superAdminRole = await db.select().from(userRoles).where(eq(userRoles.name, 'super_admin'));
+      if (existingBobby.length === 0 && superAdminRole.length > 0) {
+        const hashedPassword = await bcrypt.hash('bobby123', 10); // Default password - Bobby should change this
         
-        if (superAdminRole.length > 0) {
-          const hashedPassword = await bcrypt.hash('bobby123', 10); // Default password - Bobby should change this
-          
-          await db.insert(users).values({
-            username: 'bobby',
-            password: hashedPassword,
-            email: 'bobby@club.com',
-            firstName: 'Bobby',
-            lastName: 'Club Owner',
-            roleId: superAdminRole[0].id,
-            isSuperUser: true,
-            isActive: true,
-          });
-        }
+        await db.insert(users).values({
+          username: 'bobby',
+          password: hashedPassword,
+          email: 'bobby@club.com',
+          firstName: 'Bobby',
+          lastName: 'Club Owner',
+          roleId: superAdminRole[0].id,
+          isSuperUser: true,
+          isActive: true,
+        });
+      } else if (existingBobby.length > 0 && superAdminRole.length > 0) {
+        // Update existing Bobby to have correct role
+        await db.update(users).set({
+          roleId: superAdminRole[0].id,
+          isSuperUser: true,
+          firstName: 'Bobby',
+          lastName: 'Club Owner'
+        }).where(eq(users.username, 'bobby'));
       }
 
       console.log('Default roles and super admin user initialized successfully');
@@ -217,6 +222,16 @@ export class UserManagementService {
       .where(eq(users.id, userId))
       .returning();
     
+    return updatedUser;
+  }
+
+  // Update user role and super user status
+  async updateUserRole(userId: number, roleId?: number, isSuperUser?: boolean) {
+    const updateData: any = { updatedAt: new Date() };
+    if (roleId !== undefined) updateData.roleId = roleId;
+    if (isSuperUser !== undefined) updateData.isSuperUser = isSuperUser;
+    
+    const [updatedUser] = await db.update(users).set(updateData).where(eq(users.id, userId)).returning();
     return updatedUser;
   }
 

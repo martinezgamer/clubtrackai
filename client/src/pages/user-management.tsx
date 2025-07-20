@@ -136,13 +136,25 @@ export default function UserManagement() {
 
   // Toggle user active status
   const toggleUserMutation = useMutation({
-    mutationFn: ({ userId, isActive }: { userId: number; isActive: boolean }) =>
-      apiRequest(`/api/users/${userId}`, {
+    mutationFn: ({ userId, isActive }: { userId: number; isActive: boolean }) => {
+      console.log('Toggling user status:', { userId, isActive });
+      return apiRequest(`/api/users/${userId}`, {
         method: 'PATCH',
         body: { isActive },
-      }),
-    onSuccess: () => {
+      });
+    },
+    onSuccess: (data) => {
+      console.log('User status updated:', data);
+      toast({ title: "User status updated successfully" });
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+    },
+    onError: (error) => {
+      console.error('Failed to update user status:', error);
+      toast({ 
+        title: "Failed to update user status", 
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+        variant: "destructive" 
+      });
     },
   });
 
@@ -151,6 +163,7 @@ export default function UserManagement() {
       toast({ title: "Please fill in all required fields", variant: "destructive" });
       return;
     }
+    console.log('Creating user with data:', newUserData);
     createUserMutation.mutate(newUserData);
   };
 
