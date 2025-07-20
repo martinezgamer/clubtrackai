@@ -13,6 +13,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { SamAI } from "./services/gemini";
+import { WeatherService } from "./services/weather";
 
 const upload = multer({ 
   dest: 'uploads/',
@@ -104,10 +105,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         if (message.type === 'chat') {
           const sessionId = message.sessionId || 'default';
+          const userId = message.userId; // Get user ID from message for enhanced features
           
-          // Get or create Sam session
+          // Get or create Sam session with user ID for enhanced Bobby experience
           if (!samSessions.has(sessionId)) {
-            samSessions.set(sessionId, new SamAI(sessionId));
+            samSessions.set(sessionId, new SamAI(sessionId, userId));
           }
           
           const sam = samSessions.get(sessionId)!;
@@ -172,9 +174,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           try {
             const sessionId = message.sessionId || 'default';
             
-            // Get or create Sam session
+            // Get or create Sam session with user ID
             if (!samSessions.has(sessionId)) {
-              samSessions.set(sessionId, new SamAI(sessionId));
+              samSessions.set(sessionId, new SamAI(sessionId, message.userId));
             }
             
             const sam = samSessions.get(sessionId)!;
@@ -1206,6 +1208,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: 'Failed to delete table data' });
+    }
+  });
+
+  // Weather API - Enhanced for Bobby (super user)
+  app.get('/api/weather', async (req, res) => {
+    try {
+      const { location = 'Hammond, IN' } = req.query;
+      const session = req.session as any;
+      
+      // Check if this is Bobby or super user
+      const isSuperUser = session?.userId === 1 || session?.isSuperUser;
+      
+      if (!isSuperUser) {
+        return res.status(403).json({ error: 'Weather access restricted to super users' });
+      }
+      
+      const weatherData = await WeatherService.getWeatherForLocation(location as string);
+      const recommendations = await WeatherService.getBusinessRecommendations(weatherData);
+      
+      res.json({
+        ...weatherData,
+        businessRecommendations: recommendations,
+        accessLevel: 'super_user',
+        message: 'Enhanced weather data for club operations'
+      });
+    } catch (error) {
+      console.error('Weather API error:', error);
+      res.status(500).json({ error: 'Failed to fetch weather data' });
     }
   });
 

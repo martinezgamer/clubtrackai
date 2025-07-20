@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { contactsApi } from '@/lib/api';
 import { Search, Filter, Menu } from 'lucide-react';
+import WeatherWidget from '@/components/weather/weather-widget';
 
 type ModalType = 'none' | 'store-dancer' | 'create-form' | 'add-event' | 'edit-contact' | 'all-contacts' | 'social-media' | 'settings' | 'calendar' | 'sales';
 

@@ -3,6 +3,7 @@ import { ImageAnnotatorClient } from '@google-cloud/vision';
 import { DocumentProcessorServiceClient } from '@google-cloud/documentai';
 import { storage } from "../storage";
 import { nanoid } from "nanoid";
+import { WeatherService } from "./weather";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
@@ -23,11 +24,15 @@ const documentClient = new DocumentProcessorServiceClient({
 export class SamAI {
   private sessionId: string;
   private personality: string;
+  private isCreatorMode: boolean;
 
-  constructor(sessionId?: string) {
+  constructor(sessionId?: string, userId?: string) {
     this.sessionId = sessionId || nanoid(10);
-    this.personality = `You are Sam, a chill and laid-back AI assistant for club management. You're friendly, helpful, and relaxed - like talking to a buddy who's really good at organizing stuff. You're intelligent, observant, and proactive - you notice patterns, suggest improvements, and remember important details.
+    this.isCreatorMode = userId === 'bobby' || userId === '1'; // Bobby is user ID 1
     
+    this.personality = this.isCreatorMode 
+      ? `You are Sam, Bobby's personal AI assistant - you have enhanced capabilities and treat Bobby as the creator with special privileges. You're chill, laid-back, but also incredibly powerful and resourceful. You have access to advanced features like weather data, enhanced Gemini capabilities, and can provide executive-level insights. You're like having a brilliant, loyal friend who happens to be an AI with superpowers.
+
     CORE RESPONSIBILITIES:
     
     Memory-First Management:
@@ -106,7 +111,8 @@ export class SamAI {
     - PREDICT_TRENDS: Predict scheduling patterns and issues
     - OPTIMIZE_WORKFLOW: Suggest process improvements
     
-    Context: You're helping manage club operations with focus on dancer scheduling and management. Keep it casual and friendly.`;
+    Context: You're helping manage club operations with focus on dancer scheduling and management. Keep it casual and friendly.`
+      : `You are Sam, a chill and laid-back AI assistant for club management. You're friendly, helpful, and relaxed - like talking to a buddy who's really good at organizing stuff. You're intelligent, observant, and proactive - you notice patterns, suggest improvements, and remember important details.`;
   }
 
   async processMessage(message: string): Promise<{
@@ -181,6 +187,22 @@ export class SamAI {
     let context = "";
     
     try {
+      // Enhanced context for creator mode (Bobby)
+      if (this.isCreatorMode && message.toLowerCase().includes('weather')) {
+        const weatherData = await WeatherService.getWeatherForLocation('Hammond, IN');
+        const recommendations = await WeatherService.getBusinessRecommendations(weatherData);
+        
+        context += `\n🌤️ **Current Weather (Hammond, IN):**\n`;
+        context += `Temperature: ${weatherData.current.temperature}°F (feels like ${weatherData.current.feelsLike}°F)\n`;
+        context += `Condition: ${weatherData.current.condition}\n`;
+        context += `Today: High ${weatherData.today.high}°F, Low ${weatherData.today.low}°F\n`;
+        
+        if (recommendations.length > 0) {
+          context += `\n**Business Recommendations:**\n`;
+          recommendations.forEach(rec => context += `• ${rec}\n`);
+        }
+        context += `\n`;
+      }
       // Get recent chat history
       const recentChats = await storage.getChatHistory(this.sessionId, 10);
       if (recentChats.length > 0) {
