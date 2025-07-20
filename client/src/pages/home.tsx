@@ -280,16 +280,16 @@ export default function Home() {
                     {contactsFilter ? 'No contacts match your search.' : 'No contacts found.'}
                   </div>
                 ) : (
-                  filteredContacts.map((contact) => (
+                  filteredContacts.map((contact: any) => (
                     <ContactCard
                       key={contact.id}
                       contact={contact}
-                      onEdit={(contact) => handleContactAction('edit', contact)}
-                      onDelete={(id) => handleContactAction('delete', id)}
-                      onCall={(phone) => handleContactAction('call', phone)}
-                      onEmail={(email) => handleContactAction('email', email)}
-                      onSchedule={(contact) => handleContactAction('schedule', contact)}
-                      onMessage={(contact) => handleContactAction('message', contact)}
+                      onEdit={(contact: any) => handleContactAction('edit', contact)}
+                      onDelete={(id: number) => handleContactAction('delete', id)}
+                      onCall={(phone: string) => handleContactAction('call', phone)}
+                      onEmail={(email: string) => handleContactAction('email', email)}
+                      onSchedule={(contact: any) => handleContactAction('schedule', contact)}
+                      onMessage={(contact: any) => handleContactAction('message', contact)}
                     />
                   ))
                 )}

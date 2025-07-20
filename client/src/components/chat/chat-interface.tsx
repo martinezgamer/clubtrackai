@@ -192,6 +192,17 @@ export function ChatInterface({ onQuickAction, className }: ChatInterfaceProps) 
   };
 
   const handleVoiceToggle = () => {
+    console.log('Voice toggle clicked, isListening:', isListening, 'voiceSupported:', voiceSupported);
+    
+    if (!voiceSupported) {
+      toast({
+        title: "Voice Not Supported",
+        description: "Your browser doesn't support voice recognition. Try Chrome or Edge.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (isListening) {
       stopListening();
       // If we have transcript, send it immediately
@@ -615,10 +626,16 @@ export function ChatInterface({ onQuickAction, className }: ChatInterfaceProps) 
                   <span className="text-xs">Speaking...</span>
                 </div>
               )}
+              {error && (
+                <div className="flex items-center space-x-2 text-yellow-400">
+                  <div className="w-2 h-2 bg-yellow-400 rounded-full" />
+                  <span className="text-xs">Need mic permission</span>
+                </div>
+              )}
             </div>
             <div className="flex items-center space-x-4">
               <div className="text-xs text-gray-400">
-                Hold SPACE to talk • Click mic to toggle
+                {error ? 'Click mic for permission' : 'Hold SPACE to talk • Click mic to toggle'}
               </div>
               <Button
                 variant="ghost"

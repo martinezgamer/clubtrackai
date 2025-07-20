@@ -76,6 +76,7 @@ export function useVoiceRecognition(): UseVoiceRecognitionReturn {
       });
 
       recognitionRef.current.addEventListener('error', (event: SpeechRecognitionErrorEvent) => {
+        console.error('Speech recognition error:', event.error, event.message);
         setError(event.error);
         setIsListening(false);
       });
@@ -100,7 +101,13 @@ export function useVoiceRecognition(): UseVoiceRecognitionReturn {
   const startListening = useCallback(() => {
     if (recognitionRef.current && !isListening) {
       setError(null);
-      recognitionRef.current.start();
+      try {
+        recognitionRef.current.start();
+        console.log('Voice recognition started');
+      } catch (error) {
+        console.error('Error starting voice recognition:', error);
+        setError('Failed to start voice recognition');
+      }
     }
   }, [isListening]);
 
