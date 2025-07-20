@@ -9,10 +9,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { 
   Bot, Settings, Brain, CheckSquare, UserPlus, FileText, 
-  CalendarPlus, Clock, Phone, Calendar, Edit, Users, TrendingUp, Plus, Share2, Shield
+  CalendarPlus, Clock, Phone, Calendar, Edit, Users, TrendingUp, Plus, Share2, Shield, LogOut
 } from 'lucide-react';
 import { contactsApi, memoryApi, calendarApi } from '@/lib/api';
 import { format } from 'date-fns';
+import { useAuth } from '@/components/auth/auth-provider';
+import { useToast } from '@/hooks/use-toast';
 
 interface SidebarProps {
   onContactSelect: (contact: any) => void;
@@ -24,6 +26,8 @@ interface SidebarProps {
 
 export function Sidebar({ onContactSelect, onQuickAction, contacts = [], memoryItems = [], todaysEvents = [] }: SidebarProps) {
   const [activeTab, setActiveTab] = useState('memory');
+  const { user, logout, isLogoutPending } = useAuth();
+  const { toast } = useToast();
 
   // Use provided data if available, fallback to queries if not
   const { data: fallbackContacts = [] } = useQuery({
@@ -91,12 +95,38 @@ export function Sidebar({ onContactSelect, onQuickAction, contacts = [], memoryI
             />
             <div>
               <h1 className="text-lg font-semibold text-white">Smart Tools 4U</h1>
-              <p className="text-sm text-gray-400">AI and people meet as one</p>
+              <p className="text-sm text-gray-400">
+                {user ? `Welcome, ${user.firstName || user.username}` : 'AI and people meet as one'}
+              </p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => onQuickAction('settings')}>
-            <Settings className="w-4 h-4 text-gray-400" />
-          </Button>
+          <div className="flex items-center space-x-2">
+            <Button variant="ghost" size="sm" onClick={() => onQuickAction('settings')}>
+              <Settings className="w-4 h-4 text-gray-400" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={async () => {
+                try {
+                  await logout();
+                  toast({
+                    title: "Logged out",
+                    description: "You have been successfully logged out.",
+                  });
+                } catch (error) {
+                  toast({
+                    title: "Error",
+                    description: "Failed to logout. Please try again.",
+                    variant: "destructive",
+                  });
+                }
+              }}
+              disabled={isLogoutPending}
+            >
+              <LogOut className="w-4 h-4 text-gray-400" />
+            </Button>
+          </div>
         </div>
       </div>
 
