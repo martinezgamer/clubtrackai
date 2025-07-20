@@ -321,15 +321,7 @@ export function Sidebar({ onContactSelect, onQuickAction }: SidebarProps) {
         </div>
       </div>
 
-      {/* Floating Action Button */}
-      <div className="fixed bottom-6 right-6 z-40">
-        <Button 
-          className="w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg"
-          onClick={() => onQuickAction('create-new')}
-        >
-          <Plus className="w-6 h-6" />
-        </Button>
-      </div>
+      
     </div>
   );
 }
