@@ -77,30 +77,30 @@ export function VoiceCommandIndicator({ onQuickAction, className }: VoiceCommand
 
   return (
     <div className={`space-y-2 ${className}`}>
-      {/* Voice Control Panel */}
+      {/* Voice Control Panel - Mobile optimized */}
       <Card className="bg-gray-800 border-gray-700">
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-2 md:pb-3 p-3 md:p-6">
           <CardTitle className="flex items-center justify-between text-white">
             <div className="flex items-center space-x-2">
-              <Command className="w-5 h-5 text-blue-400" />
-              <span className="text-lg">Voice Commands</span>
+              <Command className="w-4 h-4 md:w-5 md:h-5 text-blue-400" />
+              <span className="text-sm md:text-lg">Voice Commands</span>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1 md:space-x-2">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={toggleAudioFeedback}
-                className={`${audioEnabled ? 'text-green-400' : 'text-gray-400'} hover:text-white`}
+                className={`${audioEnabled ? 'text-green-400' : 'text-gray-400'} hover:text-white p-1 md:p-2`}
               >
-                {audioEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                {audioEnabled ? <Volume2 className="w-3 h-3 md:w-4 md:h-4" /> : <VolumeX className="w-3 h-3 md:w-4 md:h-4" />}
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowHelp(!showHelp)}
-                className="text-gray-400 hover:text-white"
+                className="text-gray-400 hover:text-white p-1 md:p-2"
               >
-                <HelpCircle className="w-4 h-4" />
+                <HelpCircle className="w-3 h-3 md:w-4 md:h-4" />
               </Button>
             </div>
           </CardTitle>

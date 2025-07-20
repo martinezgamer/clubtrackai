@@ -570,28 +570,28 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
         </div>
       </ScrollArea>
 
-      {/* Chat Input */}
-      <div className="p-4 border-t border-gray-700 bg-gray-900">
-        <div className="flex items-center space-x-3">
+      {/* Chat Input - Mobile optimized */}
+      <div className="p-2 md:p-4 border-t border-gray-700 bg-gray-900">
+        <div className="flex items-center space-x-2 md:space-x-3">
           <div className="flex-1 relative">
             <Input
               type="text"
-              placeholder="Ask me anything about the club, schedules, or contacts..."
+              placeholder="Ask Sam anything..."
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}
-              className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 pr-20"
+              className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 pr-16 md:pr-20 text-sm md:text-base"
             />
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
+            <div className="absolute right-2 md:right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-1 md:space-x-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    className="text-gray-400 hover:text-white"
+                    className="text-gray-400 hover:text-white p-1 md:p-2"
                   >
-                    <Paperclip className="w-4 h-4 mr-1" />
-                    <ChevronDown className="w-3 h-3" />
+                    <Paperclip className="w-3 h-3 md:w-4 md:h-4 mr-0 md:mr-1" />
+                    <ChevronDown className="w-2 h-2 md:w-3 md:h-3 hidden md:block" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
@@ -610,9 +610,9 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
                   variant="ghost" 
                   size="sm"
                   onClick={handleVoiceToggle}
-                  className={isListening ? 'text-red-400' : 'text-gray-400 hover:text-white'}
+                  className={`${isListening ? 'text-red-400' : 'text-gray-400 hover:text-white'} p-1 md:p-2`}
                 >
-                  {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                  {isListening ? <MicOff className="w-3 h-3 md:w-4 md:h-4" /> : <Mic className="w-3 h-3 md:w-4 md:h-4" />}
                 </Button>
               )}
             </div>
@@ -620,9 +620,10 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
           <Button 
             onClick={handleSendMessage}
             disabled={!inputValue.trim() || readyState !== 1}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-blue-600 hover:bg-blue-700 p-2 md:p-3"
+            size="sm"
           >
-            <Send className="w-4 h-4" />
+            <Send className="w-3 h-3 md:w-4 md:h-4" />
           </Button>
         </div>
         

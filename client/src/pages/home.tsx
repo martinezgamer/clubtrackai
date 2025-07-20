@@ -7,6 +7,7 @@ import { CalendarWidget } from '@/components/calendar/calendar-widget';
 import { VoiceCommandIndicator } from '@/components/voice/voice-command-indicator';
 import SocialMedia from '@/pages/social-media';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useToast } from '@/hooks/use-toast';
 import { ContactCard } from '@/components/contacts/contact-card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -14,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { contactsApi } from '@/lib/api';
-import { Search, Filter } from 'lucide-react';
+import { Search, Filter, Menu } from 'lucide-react';
 
 type ModalType = 'none' | 'store-dancer' | 'create-form' | 'add-event' | 'edit-contact' | 'all-contacts' | 'social-media' | 'settings';
 
@@ -23,6 +24,7 @@ export default function Home() {
   const [selectedContact, setSelectedContact] = useState<any>(null);
   const [contactsFilter, setContactsFilter] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -395,24 +397,56 @@ export default function Home() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-900 text-white">
-      <Sidebar
-        onContactSelect={handleContactSelect}
-        onQuickAction={handleQuickAction}
-      />
+    <div className="flex flex-col md:flex-row h-screen bg-gray-900 text-white">
+      {/* Mobile Header with Menu Button */}
+      <div className="md:hidden bg-gray-800 border-b border-gray-700 p-4 flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+            <span className="text-white text-sm font-bold">S</span>
+          </div>
+          <h1 className="text-lg font-semibold text-white">Sam AI</h1>
+        </div>
+        <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="sm">
+              <Menu className="w-5 h-5 text-gray-400" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-80 p-0 bg-gray-900 border-gray-700">
+            <Sidebar
+              onContactSelect={(contact) => {
+                handleContactSelect(contact);
+                setSidebarOpen(false);
+              }}
+              onQuickAction={(action) => {
+                handleQuickAction(action);
+                setSidebarOpen(false);
+              }}
+            />
+          </SheetContent>
+        </Sheet>
+      </div>
+
+      {/* Desktop Sidebar */}
+      <div className="hidden md:block">
+        <Sidebar
+          onContactSelect={handleContactSelect}
+          onQuickAction={handleQuickAction}
+        />
+      </div>
       
       {/* Main Content Area with Voice Commands */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <ChatInterface onQuickAction={handleQuickAction} className="flex-1" />
         
-        {/* Voice Command Panel - Fixed infinite loop issue */}
-        <div className="p-4 bg-gray-800 border-t border-gray-700">
+        {/* Voice Command Panel - Mobile optimized */}
+        <div className="p-2 md:p-4 bg-gray-800 border-t border-gray-700">
           <VoiceCommandIndicator onQuickAction={handleQuickAction} />
         </div>
       </div>
       
       <Dialog open={activeModal !== 'none'} onOpenChange={handleModalClose}>
-        <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-4xl max-h-[90vh] overflow-y-auto w-[95vw] md:w-full">
           <DialogHeader>
             <DialogTitle className="text-white">{getModalTitle()}</DialogTitle>
             <DialogDescription className="text-gray-300">
