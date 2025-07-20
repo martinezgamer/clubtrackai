@@ -4,6 +4,7 @@ import { ChatInterface } from '@/components/chat/chat-interface';
 import { ContactForm } from '@/components/contacts/contact-form';
 import { FormBuilder } from '@/components/forms/form-builder';
 import { CalendarWidget } from '@/components/calendar/calendar-widget';
+import { VoiceCommandIndicator } from '@/components/voice/voice-command-indicator';
 import SocialMedia from '@/pages/social-media';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -399,7 +400,16 @@ export default function Home() {
         onContactSelect={handleContactSelect}
         onQuickAction={handleQuickAction}
       />
-      <ChatInterface onQuickAction={handleQuickAction} />
+      
+      {/* Main Content Area with Voice Commands */}
+      <div className="flex-1 flex flex-col">
+        <ChatInterface onQuickAction={handleQuickAction} className="flex-1" />
+        
+        {/* Voice Command Panel - Fixed at bottom */}
+        <div className="p-4 bg-gray-800 border-t border-gray-700">
+          <VoiceCommandIndicator onQuickAction={handleQuickAction} />
+        </div>
+      </div>
       
       <Dialog open={activeModal !== 'none'} onOpenChange={handleModalClose}>
         <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-4xl max-h-[90vh] overflow-y-auto">

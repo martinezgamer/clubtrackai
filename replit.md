@@ -131,6 +131,19 @@ AI personality: Sam - chill, laid-back, and friendly AI assistant. Casual and re
   - Historical conversation retrieval
   - Performance metrics for AI interactions
 
+### 10. Voice Command Integration
+- **Purpose**: Provide hands-free navigation and control of the club management system
+- **Features**:
+  - Speech recognition for voice commands with Web Speech API
+  - Natural language command processing for navigation
+  - Audio feedback with text-to-speech responses
+  - Keyboard shortcuts (Ctrl+Shift+V to toggle, Esc to stop)
+  - Comprehensive command categories: navigation, actions, and controls
+  - Real-time listening indicator with visual feedback
+  - Voice command help system with categorized command lists
+  - Integration with all major app functions (contacts, calendar, forms, etc.)
+  - Accessibility features for hands-free operation
+
 ## Data Flow
 
 ### Real-time Communication

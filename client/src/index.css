@@ -136,6 +136,35 @@
     animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 
+  /* Voice command animations */
+  .voice-listening-pulse {
+    animation: voice-pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes voice-pulse {
+    0%, 100% {
+      opacity: 0.7;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.05);
+    }
+  }
+
+  .voice-command-indicator {
+    animation: voice-glow 2s ease-in-out infinite;
+  }
+
+  @keyframes voice-glow {
+    0%, 100% {
+      box-shadow: 0 0 5px rgba(239, 68, 68, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.8);
+    }
+  }
+
   /* Chat message styling */
   .chat-message {
     @apply animate-fadeIn;
