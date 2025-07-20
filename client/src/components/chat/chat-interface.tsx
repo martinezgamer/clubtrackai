@@ -284,33 +284,43 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
         if (file.type.startsWith('image/')) {
           // Handle image upload with reading capability
           const reader = new FileReader();
-          reader.onload = async (e) => {
-            const imageData = e.target?.result as string;
-            const base64Data = imageData.split(',')[1]; // Remove data URL prefix
-            
-            const fileMessage = `I'm uploading an image: ${file.name}. Please read and analyze everything you see in it.`;
-            
-            // Send the text message first with image preview
-            const userMessage: ChatMessage = {
-              id: `user-${Date.now()}`,
-              content: fileMessage,
-              sender: 'user',
-              timestamp: new Date().toISOString(),
-              imageUrl: imageData, // Store the full data URL for preview
-            };
-            
-            setMessages(prev => [...prev, userMessage]);
-            setInputValue('');
-            setIsTyping(true);
-            
-            // Send image data to WebSocket
-            sendMessage({
-              type: 'image',
-              imageData: base64Data,
-              imageMimeType: file.type,
-              userMessage: fileMessage,
-              sessionId: 'default'
-            });
+          reader.onload = (e) => {
+            try {
+              const imageData = e.target?.result as string;
+              const base64Data = imageData.split(',')[1]; // Remove data URL prefix
+              
+              const fileMessage = `I'm uploading an image: ${file.name}. Please read and analyze everything you see in it.`;
+              
+              // Send the text message first with image preview
+              const userMessage: ChatMessage = {
+                id: `user-${Date.now()}`,
+                content: fileMessage,
+                sender: 'user',
+                timestamp: new Date().toISOString(),
+                imageUrl: imageData, // Store the full data URL for preview
+              };
+              
+              setMessages(prev => [...prev, userMessage]);
+              setInputValue('');
+              setIsTyping(true);
+              
+              // Send image data to WebSocket
+              sendMessage({
+                type: 'image',
+                imageData: base64Data,
+                imageMimeType: file.type,
+                userMessage: fileMessage,
+                sessionId: 'default'
+              });
+            } catch (error) {
+              console.error('Error processing image:', error);
+              toast({
+                title: "Upload Failed",
+                description: "Failed to process image. Please try again.",
+                variant: "destructive",
+              });
+              setIsTyping(false);
+            }
           };
           reader.readAsDataURL(file);
         } else {
@@ -375,39 +385,49 @@ export function ChatInterface({ onQuickAction }: ChatInterfaceProps) {
         }
 
         const reader = new FileReader();
-        reader.onload = async (e) => {
-          const fileData = e.target?.result;
-          let base64Data = '';
-          
-          if (typeof fileData === 'string') {
-            base64Data = fileData.split(',')[1]; // Remove data URL prefix
-          } else if (fileData instanceof ArrayBuffer) {
-            base64Data = btoa(String.fromCharCode(...new Uint8Array(fileData)));
+        reader.onload = (e) => {
+          try {
+            const fileData = e.target?.result;
+            let base64Data = '';
+            
+            if (typeof fileData === 'string') {
+              base64Data = fileData.split(',')[1]; // Remove data URL prefix
+            } else if (fileData instanceof ArrayBuffer) {
+              base64Data = btoa(String.fromCharCode(...new Uint8Array(fileData)));
+            }
+            
+            const fileMessage = `I'm uploading a document: ${file.name}. Please process and analyze the content.`;
+            
+            // Send the text message first
+            const userMessage: ChatMessage = {
+              id: `user-${Date.now()}`,
+              content: fileMessage,
+              sender: 'user',
+              timestamp: new Date().toISOString(),
+            };
+            
+            setMessages(prev => [...prev, userMessage]);
+            setInputValue('');
+            setIsTyping(true);
+            
+            // Send document data to WebSocket
+            sendMessage({
+              type: 'document',
+              documentData: base64Data,
+              documentMimeType: file.type,
+              documentName: file.name,
+              userMessage: fileMessage,
+              sessionId: 'default'
+            });
+          } catch (error) {
+            console.error('Error processing document:', error);
+            toast({
+              title: "Upload Failed",
+              description: "Failed to process document. Please try again.",
+              variant: "destructive",
+            });
+            setIsTyping(false);
           }
-          
-          const fileMessage = `I'm uploading a document: ${file.name}. Please process and analyze the content.`;
-          
-          // Send the text message first
-          const userMessage: ChatMessage = {
-            id: `user-${Date.now()}`,
-            content: fileMessage,
-            sender: 'user',
-            timestamp: new Date().toISOString(),
-          };
-          
-          setMessages(prev => [...prev, userMessage]);
-          setInputValue('');
-          setIsTyping(true);
-          
-          // Send document data to WebSocket
-          sendMessage({
-            type: 'document',
-            documentData: base64Data,
-            documentMimeType: file.type,
-            documentName: file.name,
-            userMessage: fileMessage,
-            sessionId: 'default'
-          });
         };
         
         if (file.type === 'application/pdf') {
