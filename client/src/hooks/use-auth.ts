@@ -63,12 +63,25 @@ export const useAuthMutations = () => {
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: { username: string; password: string }) => {
-      const response = await apiRequest('POST', '/api/auth/login', credentials);
-      return response.json() as Promise<User>;
+      try {
+        console.log('Frontend: Attempting login for:', credentials.username);
+        const response = await apiRequest('POST', '/api/auth/login', credentials);
+        console.log('Frontend: Login response status:', response.status);
+        const userData = await response.json() as User;
+        console.log('Frontend: Login successful, user data:', userData);
+        return userData;
+      } catch (error) {
+        console.error('Frontend: Login error:', error);
+        throw error;
+      }
     },
     onSuccess: (user) => {
+      console.log('Frontend: Setting auth data for user:', user.username);
       queryClient.setQueryData(['/api/auth/me'], user);
       queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+    },
+    onError: (error) => {
+      console.error('Frontend: Login mutation failed:', error);
     },
   });
 

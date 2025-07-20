@@ -38,13 +38,16 @@ export default function Login() {
     }
 
     try {
+      console.log('Login form: Attempting login for username:', username.trim());
       const user = await login(username.trim(), password);
+      console.log('Login form: Login successful:', user);
       toast({
         title: "Welcome back!",
         description: `Logged in as ${user.firstName || user.username}`,
       });
       setLocation('/');
     } catch (error: any) {
+      console.error('Login form: Login failed:', error);
       const errorMessage = error.message.includes('401') 
         ? 'Invalid username or password' 
         : 'Login failed. Please try again.';
