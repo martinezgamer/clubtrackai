@@ -13,7 +13,8 @@ function getGoogleCredentials() {
     if (process.env.GOOGLE_CLOUD_CREDENTIALS) {
       // Check if it's an API key (starts with AIza) or JSON credentials
       if (process.env.GOOGLE_CLOUD_CREDENTIALS.startsWith('AIza')) {
-        console.warn('GOOGLE_CLOUD_CREDENTIALS appears to be an API key, not service account JSON. Vision API requires service account credentials.');
+        console.log('GOOGLE_CLOUD_CREDENTIALS appears to be an API key, not service account JSON. Vision API requires service account credentials.');
+        console.log('Google Cloud Vision and Document AI features will be disabled. App will continue with Gemini-only functionality.');
         return undefined;
       }
       // Try to parse as JSON service account credentials
@@ -22,7 +23,7 @@ function getGoogleCredentials() {
       return credentials;
     }
   } catch (error) {
-    console.warn('Failed to parse GOOGLE_CLOUD_CREDENTIALS as JSON. Please ensure it contains valid service account JSON:', (error as Error).message);
+    console.log('Failed to parse GOOGLE_CLOUD_CREDENTIALS as JSON. Google Cloud features disabled, app will continue with Gemini-only functionality.');
   }
   return undefined;
 }
@@ -54,7 +55,7 @@ if (credentials && process.env.GOOGLE_CLOUD_PROJECT_ID) {
     console.error('Failed to initialize Google Cloud clients:', error);
   }
 } else {
-  console.warn('Google Cloud credentials or project ID not configured properly');
+  console.log('Google Cloud credentials or project ID not configured properly. Google Cloud features disabled, app will continue with Gemini-only functionality.');
 }
 
 export class SamAI {
