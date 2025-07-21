@@ -7,19 +7,50 @@ import { WeatherService } from "./weather";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
-// Initialize Google Cloud Vision client
-const visionClient = new ImageAnnotatorClient({
-  keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS || undefined,
-  projectId: process.env.GOOGLE_CLOUD_PROJECT_ID || undefined,
-  credentials: process.env.GOOGLE_CLOUD_CREDENTIALS ? JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS) : undefined
-});
+// Helper function to safely parse Google Cloud credentials
+function getGoogleCredentials() {
+  try {
+    if (process.env.GOOGLE_CLOUD_CREDENTIALS) {
+      // Try to parse as JSON first
+      const credentials = JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS);
+      console.log('Google Cloud credentials loaded successfully');
+      return credentials;
+    }
+  } catch (error) {
+    console.warn('Failed to parse GOOGLE_CLOUD_CREDENTIALS as JSON:', error);
+  }
+  return undefined;
+}
 
-// Initialize Google Document AI client
-const documentClient = new DocumentProcessorServiceClient({
-  keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS || undefined,
-  projectId: process.env.GOOGLE_CLOUD_PROJECT_ID || undefined,
-  credentials: process.env.GOOGLE_CLOUD_CREDENTIALS ? JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS) : undefined
-});
+// Initialize Google Cloud Vision client only if credentials are available
+let visionClient: ImageAnnotatorClient | null = null;
+let documentClient: DocumentProcessorServiceClient | null = null;
+
+const credentials = getGoogleCredentials();
+if (credentials && process.env.GOOGLE_CLOUD_PROJECT_ID) {
+  try {
+    // Set fallback flag to prevent metadata server usage
+    process.env.GOOGLE_APPLICATION_CREDENTIALS_DISABLE_AUTO_DISCOVERY = 'true';
+    
+    visionClient = new ImageAnnotatorClient({
+      projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
+      credentials: credentials,
+      fallback: false // Disable fallback to metadata server
+    });
+    
+    documentClient = new DocumentProcessorServiceClient({
+      projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
+      credentials: credentials,
+      fallback: false // Disable fallback to metadata server
+    });
+    
+    console.log('Google Cloud Vision and Document AI clients initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize Google Cloud clients:', error);
+  }
+} else {
+  console.warn('Google Cloud credentials or project ID not configured properly');
+}
 
 export class SamAI {
   private sessionId: string;
@@ -542,6 +573,10 @@ export const geminiService = {
 
   async analyzeWithCloudVision(imageBase64: string): Promise<string> {
     try {
+      if (!visionClient) {
+        return "Cloud Vision analysis unavailable";
+      }
+      
       const imageBuffer = Buffer.from(imageBase64, 'base64');
       
       // Perform multiple types of analysis including enhanced OCR
@@ -753,6 +788,10 @@ export const geminiService = {
     try {
       const imageBuffer = Buffer.from(imageBase64, 'base64');
       
+      if (!visionClient) {
+        return "OCR service unavailable";
+      }
+      
       // Use both text detection methods for best results
       const [textDetection, documentTextDetection] = await Promise.all([
         visionClient.textDetection({ image: { content: imageBuffer } }),
@@ -798,11 +837,15 @@ export const geminiService = {
         };
 
         try {
-          const [result] = await documentClient.processDocument(request);
-          const document = result.document;
+          if (!documentClient) {
+            console.log("Document AI client not available, skipping");
+          } else {
+            const [result] = await documentClient.processDocument(request);
+            const document = result.document;
           
-          if (document && document.text) {
-            return `📄 **Document AI Analysis of ${fileName}:**\n\n${document.text}`;
+            if (document && document.text) {
+              return `📄 **Document AI Analysis of ${fileName}:**\n\n${document.text}`;
+            }
           }
         } catch (docAIError) {
           console.log("Document AI not available, falling back to text extraction");
@@ -841,4 +884,4 @@ export const geminiService = {
       return `Failed to process document "${fileName}": ${error instanceof Error ? error.message : "Unknown error"}`;
     }
   }
-};
+}
