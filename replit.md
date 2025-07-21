@@ -12,6 +12,26 @@ Company branding: Smart Tools 4U with tagline "AI and people meet as one" - inte
 
 ## Recent Updates (July 21, 2025)
 
+✓ **Multi-Tenant Database Architecture**: Complete data isolation system
+  - Implemented separate databases per club for complete data isolation
+  - Created dynamic database manager with club-specific connections
+  - Updated storage layer to support club-aware data operations
+  - Each club gets its own database for contacts, forms, events, and all data
+  - Club databases are created automatically when new clubs are added
+
+✓ **User Club Assignment System**: Multi-club membership support
+  - Users can be assigned to multiple clubs during creation
+  - Club assignments are required when creating new users
+  - First assigned club becomes the default club for the user
+  - Updated user management UI with club selection checkboxes
+  - Fixed user creation API to properly handle club assignments
+
+✓ **Dancer Stage Name Feature**: Enhanced contact management for performers
+  - Added stageName field to contacts schema and database
+  - Stage name input field appears only when "dancer" role is selected
+  - Contact cards display stage names prominently for dancers
+  - Updated contact form validation to include stage name field
+
 ✓ **Critical Bug Fixes**: Comprehensive debugging and error resolution
   - Fixed TTS audio playback failures due to browser autoplay policies
   - Resolved unhandled promise rejections in WebSocket connections
@@ -269,9 +289,16 @@ Company branding: Smart Tools 4U with tagline "AI and people meet as one" - inte
 ├── client/          # Frontend React application
 ├── server/          # Backend Express server
 ├── shared/          # Shared types and schemas
-├── migrations/      # Database migration files
 ├── uploads/         # File upload storage
 └── dist/           # Production build output
 ```
+
+### Multi-Tenant Architecture
+The application now supports complete multi-tenancy with:
+- **Master Database**: Stores users, roles, clubs, and user-club assignments
+- **Club-Specific Databases**: Each club gets a separate database for complete data isolation
+- **Dynamic Database Connections**: Database manager handles routing to appropriate club databases
+- **Club-Aware Operations**: All data operations are scoped to the user's assigned clubs
+- **Automatic Database Creation**: New club databases are created automatically when clubs are added
 
 The application is designed to be deployed on platforms that support Node.js with PostgreSQL, with the frontend serving as a single-page application and the backend providing API endpoints and WebSocket connections.
