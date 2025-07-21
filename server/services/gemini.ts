@@ -11,13 +11,18 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 function getGoogleCredentials() {
   try {
     if (process.env.GOOGLE_CLOUD_CREDENTIALS) {
-      // Try to parse as JSON first
+      // Check if it's an API key (starts with AIza) or JSON credentials
+      if (process.env.GOOGLE_CLOUD_CREDENTIALS.startsWith('AIza')) {
+        console.warn('GOOGLE_CLOUD_CREDENTIALS appears to be an API key, not service account JSON. Vision API requires service account credentials.');
+        return undefined;
+      }
+      // Try to parse as JSON service account credentials
       const credentials = JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS);
-      console.log('Google Cloud credentials loaded successfully');
+      console.log('Google Cloud service account credentials loaded successfully');
       return credentials;
     }
   } catch (error) {
-    console.warn('Failed to parse GOOGLE_CLOUD_CREDENTIALS as JSON:', error);
+    console.warn('Failed to parse GOOGLE_CLOUD_CREDENTIALS as JSON. Please ensure it contains valid service account JSON:', error.message);
   }
   return undefined;
 }
@@ -885,7 +890,7 @@ export const geminiService = {
     }
   },
 
-  // Enhanced Social Media AI Methods
+  // Enhanced Social Media AI Methods - Made Public
   async enhancePostsWithHashtags(posts: string[]): Promise<string[]> {
     try {
       const enhancedPosts = await Promise.all(posts.map(async (post) => {

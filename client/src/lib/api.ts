@@ -94,16 +94,20 @@ export const contactsApi = {
   getById: (id: number) => apiRequest('GET', `/api/contacts/${id}`),
   
   create: (contact: Partial<Contact>, photo?: File) => {
-    const formData = new FormData();
-    Object.entries(contact).forEach(([key, value]) => {
-      if (value !== undefined) {
-        formData.append(key, typeof value === 'object' ? JSON.stringify(value) : String(value));
-      }
-    });
     if (photo) {
+      // Use FormData for photo uploads
+      const formData = new FormData();
+      Object.entries(contact).forEach(([key, value]) => {
+        if (value !== undefined) {
+          formData.append(key, typeof value === 'object' ? JSON.stringify(value) : String(value));
+        }
+      });
       formData.append('photo', photo);
+      return apiRequest('POST', '/api/contacts', formData);
+    } else {
+      // Use JSON for simple contact creation
+      return apiRequest('POST', '/api/contacts', contact).then(res => res.json());
     }
-    return apiRequest('POST', '/api/contacts', formData);
   },
   
   update: (id: number, contact: Partial<Contact>, photo?: File) => {

@@ -469,8 +469,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         metadata: {
           enhanced: enhanced || false,
           aiGenerated: fields && fields.length > 0,
-          fieldCount: fields ? fields.length : 0,
-          ...validatedFormData.metadata
+          fieldCount: fields ? fields.length : 0
         }
       };
       
@@ -517,7 +516,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      const formStructure = await sam.extractFormInfo(prompt);
+      const formStructure = await sam.processMessage(prompt).then(result => result.data);
       
       if (!formStructure) {
         return res.status(500).json({ error: 'Failed to generate form structure' });
@@ -830,12 +829,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Add AI-generated hashtags if requested
         if (autoHashtags === 'true') {
-          posts = await sam.enhancePostsWithHashtags(posts);
+          posts = await geminiService.enhancePostsWithHashtags(posts);
         }
         
         // Platform optimization if requested
         if (platformOptimized === 'true') {
-          posts = await sam.optimizePostsForPlatforms(posts);
+          posts = await geminiService.optimizePostsForPlatforms(posts);
         }
       }
       
@@ -1056,8 +1055,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Add additional AI enhancements
         const ocrText = await geminiService.extractTextFromImage(imageBase64);
-        const sam = new SamAI();
-        const socialSuggestions = await sam.generateSocialSuggestions(visualAnalysis);
+        const socialSuggestions = await geminiService.generateSocialSuggestions(visualAnalysis);
         
         analysis = {
           visualAnalysis: visualAnalysis,
