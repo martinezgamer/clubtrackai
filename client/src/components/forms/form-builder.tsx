@@ -85,7 +85,7 @@ export function FormBuilder({ onSave, onCancel }: FormBuilderProps) {
   const generateFieldsMutation = useMutation({
     mutationFn: ({ formType, context }: { formType: string; context: string }) =>
       formsApi.generateQuestions(formType, context),
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       if (data.questions && data.questions.length > 0) {
         setFields(data.questions);
         toast({

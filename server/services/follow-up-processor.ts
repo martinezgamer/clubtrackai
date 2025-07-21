@@ -45,7 +45,7 @@ export class FollowUpProcessor {
 
   async processExecution(execution: FollowUpExecution) {
     try {
-      const action = await storage.getFollowUpAction(execution.actionId);
+      const action = execution.actionId ? await storage.getFollowUpAction(execution.actionId) : null;
       if (!action) {
         await storage.updateFollowUpExecution(execution.id, {
           status: 'failed',
@@ -91,7 +91,7 @@ export class FollowUpProcessor {
   private async sendMessage(action: FollowUpAction, execution: FollowUpExecution): Promise<boolean> {
     try {
       const actionData = action.actionData as any;
-      const response = await storage.getFormResponse(execution.responseId);
+      const response = execution.responseId ? await storage.getFormResponse(execution.responseId) : null;
       
       if (!response || !response.contactId) return false;
 
@@ -110,11 +110,7 @@ export class FollowUpProcessor {
           userId: 1, // System user
           message: personalizedMessage,
           sender: 'assistant',
-          messageType: 'text',
-          metadata: JSON.stringify({
-            followUpSequenceId: execution.sequenceId,
-            followUpActionId: execution.actionId
-          })
+          messageType: 'text'
         });
       }
 
@@ -128,7 +124,7 @@ export class FollowUpProcessor {
   private async createMemory(action: FollowUpAction, execution: FollowUpExecution): Promise<boolean> {
     try {
       const actionData = action.actionData as any;
-      const response = await storage.getFormResponse(execution.responseId);
+      const response = execution.responseId ? await storage.getFormResponse(execution.responseId) : null;
       
       if (!response || !response.contactId) return false;
 
@@ -152,7 +148,7 @@ export class FollowUpProcessor {
   private async scheduleEvent(action: FollowUpAction, execution: FollowUpExecution): Promise<boolean> {
     try {
       const actionData = action.actionData as any;
-      const response = await storage.getFormResponse(execution.responseId);
+      const response = execution.responseId ? await storage.getFormResponse(execution.responseId) : null;
       
       if (!response || !response.contactId) return false;
 
@@ -181,7 +177,7 @@ export class FollowUpProcessor {
   private async generateSocialContent(action: FollowUpAction, execution: FollowUpExecution): Promise<boolean> {
     try {
       const actionData = action.actionData as any;
-      const response = await storage.getFormResponse(execution.responseId);
+      const response = execution.responseId ? await storage.getFormResponse(execution.responseId) : null;
       
       if (!response) return false;
 
@@ -190,8 +186,8 @@ export class FollowUpProcessor {
       );
 
       await storage.createSocialMediaContent({
-        title: typeof content === 'string' ? 'Generated Content' : content.title || 'Generated Content',
-        content: typeof content === 'string' ? content : content.content || content,
+        title: typeof content === 'string' ? 'Generated Content' : (content as any)?.title || 'Generated Content',
+        content: typeof content === 'string' ? content : (content as any)?.content || JSON.stringify(content),
         contentType: actionData.contentType || 'post',
         platform: actionData.platform || 'general',
         imageUrl: null,

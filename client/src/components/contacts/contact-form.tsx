@@ -39,9 +39,6 @@ export function ContactForm({ contact, onSave, onCancel }: ContactFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Watch the role field to conditionally show stage name
-  const watchedRole = watch('role');
-
   const {
     register,
     handleSubmit,
@@ -61,6 +58,9 @@ export function ContactForm({ contact, onSave, onCancel }: ContactFormProps) {
       notes: contact?.notes || '',
     },
   });
+
+  // Watch the role field to conditionally show stage name
+  const watchedRole = watch('role');
 
   const createMutation = useMutation({
     mutationFn: (data: { contact: ContactFormData; photo?: File }) =>

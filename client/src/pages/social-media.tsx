@@ -23,7 +23,7 @@ export default function SocialMedia() {
   const generatePostsMutation = useMutation({
     mutationFn: ({ prompt, image }: { prompt: string; image?: File }) => 
       socialMediaApi.generatePosts(prompt, image),
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       setGeneratedPosts(data.posts || []);
       toast({
         title: "Success",
@@ -42,7 +42,7 @@ export default function SocialMedia() {
 
   const analyzeImageMutation = useMutation({
     mutationFn: (image: File) => socialMediaApi.analyzeImage(image),
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       setImageAnalysis(data.analysis || '');
       toast({
         title: "Success",
@@ -81,7 +81,7 @@ export default function SocialMedia() {
       return;
     }
 
-    generatePostsMutation.mutate({ prompt, image: selectedImage });
+    generatePostsMutation.mutate({ prompt, image: selectedImage || undefined });
   };
 
   const handleAnalyzeImage = () => {

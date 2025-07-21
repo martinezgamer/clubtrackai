@@ -86,7 +86,7 @@ export const conversations = pgTable("conversations", {
   message: text("message").notNull(),
   sender: text("sender").notNull(), // user, ai, contact
   messageType: text("message_type").default("text"), // text, voice, image
-  metadata: json("metadata").$type<Record<string, any>>(),
+  metadata: json("metadata").$type<Record<string, any>>().default({}),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
