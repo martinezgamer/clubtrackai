@@ -109,6 +109,10 @@ export default function Home() {
         // Navigate to user management page
         window.location.href = '/user-management';
         break;
+      case 'club-management':
+        // Navigate to club management page
+        window.location.href = '/club-management';
+        break;
       default:
         console.log('Unknown action:', action);
     }

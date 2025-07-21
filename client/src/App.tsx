@@ -8,6 +8,7 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import Home from "@/pages/home";
 import Login from "@/pages/login";
 import UserManagement from "@/pages/user-management";
+import ClubManagement from "@/pages/club-management";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -43,6 +44,11 @@ function Router() {
       <Route path="/user-management">
         <ProtectedRoute>
           <UserManagement />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/club-management">
+        <ProtectedRoute>
+          <ClubManagement />
         </ProtectedRoute>
       </Route>
       <Route component={NotFound} />

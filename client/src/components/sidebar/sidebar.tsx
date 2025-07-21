@@ -9,7 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { 
   Bot, Settings, Brain, CheckSquare, UserPlus, FileText, 
-  CalendarPlus, Clock, Phone, Calendar, Edit, Users, TrendingUp, Plus, Share2, Shield, LogOut
+  CalendarPlus, Clock, Phone, Calendar, Edit, Users, TrendingUp, Plus, Share2, Shield, LogOut, Building2
 } from 'lucide-react';
 import { contactsApi, memoryApi, calendarApi } from '@/lib/api';
 import { format } from 'date-fns';
@@ -181,6 +181,14 @@ export function Sidebar({ onContactSelect, onQuickAction, contacts = [], memoryI
           >
             <Share2 className="w-4 h-4 mr-2" />
             Social Media
+          </Button>
+          <Button 
+            variant="outline" 
+            className="w-full justify-start bg-indigo-500/10 border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20"
+            onClick={() => onQuickAction('club-management')}
+          >
+            <Building2 className="w-4 h-4 mr-2" />
+            Club Management
           </Button>
         </div>
       </div>

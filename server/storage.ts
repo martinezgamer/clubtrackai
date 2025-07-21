@@ -15,21 +15,22 @@ import {
   type DynamicTableData, type InsertDynamicTableData
 } from "@shared/schema";
 import { db } from "./db";
+import { databaseManager, getDbForClub, getDbForUser } from "./database-manager";
 import { eq, desc, and, or, like, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
-  // Users
+  // Users (Master DB only)
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
 
-  // Contacts
-  getContact(id: number): Promise<Contact | undefined>;
-  getContacts(filters?: { role?: string; status?: string }): Promise<Contact[]>;
-  createContact(contact: InsertContact): Promise<Contact>;
-  updateContact(id: number, contact: Partial<InsertContact>): Promise<Contact>;
-  deleteContact(id: number): Promise<void>;
-  searchContacts(query: string): Promise<Contact[]>;
+  // Contacts (Club-specific)
+  getContact(id: number, clubId?: number): Promise<Contact | undefined>;
+  getContacts(filters?: { role?: string; status?: string; clubId?: number }): Promise<Contact[]>;
+  createContact(contact: InsertContact, clubId?: number): Promise<Contact>;
+  updateContact(id: number, contact: Partial<InsertContact>, clubId?: number): Promise<Contact>;
+  deleteContact(id: number, clubId?: number): Promise<void>;
+  searchContacts(query: string, clubId?: number): Promise<Contact[]>;
 
   // Conversations
   getConversation(id: number): Promise<Conversation | undefined>;
@@ -127,50 +128,61 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  // Users
+  // Users (Master DB only)
   async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
+    const masterDb = databaseManager.getMasterDb();
+    const [user] = await masterDb.select().from(users).where(eq(users.id, id));
     return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+    const masterDb = databaseManager.getMasterDb();
+    const [user] = await masterDb.select().from(users).where(eq(users.username, username));
     return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
+    const masterDb = databaseManager.getMasterDb();
+    const [user] = await masterDb.insert(users).values(insertUser).returning();
     return user;
   }
 
-  // Contacts
-  async getContact(id: number): Promise<Contact | undefined> {
-    const [contact] = await db.select().from(contacts).where(eq(contacts.id, id));
+  // Contacts (Club-specific)
+  async getContact(id: number, clubId?: number): Promise<Contact | undefined> {
+    const database = clubId ? await getDbForClub(clubId) : db;
+    const [contact] = await database.select().from(contacts).where(eq(contacts.id, id));
     return contact || undefined;
   }
 
-  async getContacts(filters?: { role?: string; status?: string }): Promise<Contact[]> {
+  async getContacts(filters?: { role?: string; status?: string; clubId?: number }): Promise<Contact[]> {
+    const database = filters?.clubId ? await getDbForClub(filters.clubId) : db;
+    
     if (filters?.role || filters?.status) {
       const conditions = [];
       if (filters.role) conditions.push(eq(contacts.role, filters.role));
       if (filters.status) conditions.push(eq(contacts.status, filters.status));
+      if (filters.clubId) conditions.push(eq(contacts.clubId, filters.clubId));
       
-      return await db.select().from(contacts)
+      return await database.select().from(contacts)
         .where(and(...conditions))
         .orderBy(desc(contacts.lastContact), contacts.name);
     }
     
-    return await db.select().from(contacts)
+    const whereClause = filters?.clubId ? eq(contacts.clubId, filters.clubId) : undefined;
+    return await database.select().from(contacts)
+      .where(whereClause)
       .orderBy(desc(contacts.lastContact), contacts.name);
   }
 
-  async createContact(contact: InsertContact): Promise<Contact> {
-    const [newContact] = await db.insert(contacts).values(contact).returning();
+  async createContact(contact: InsertContact, clubId?: number): Promise<Contact> {
+    const database = clubId ? await getDbForClub(clubId) : db;
+    const [newContact] = await database.insert(contacts).values(contact).returning();
     return newContact;
   }
 
-  async updateContact(id: number, contact: Partial<InsertContact>): Promise<Contact> {
-    const [updatedContact] = await db
+  async updateContact(id: number, contact: Partial<InsertContact>, clubId?: number): Promise<Contact> {
+    const database = clubId ? await getDbForClub(clubId) : db;
+    const [updatedContact] = await database
       .update(contacts)
       .set({ ...contact, updatedAt: new Date() })
       .where(eq(contacts.id, id))
@@ -178,18 +190,24 @@ export class DatabaseStorage implements IStorage {
     return updatedContact;
   }
 
-  async deleteContact(id: number): Promise<void> {
-    await db.delete(contacts).where(eq(contacts.id, id));
+  async deleteContact(id: number, clubId?: number): Promise<void> {
+    const database = clubId ? await getDbForClub(clubId) : db;
+    await database.delete(contacts).where(eq(contacts.id, id));
   }
 
-  async searchContacts(query: string): Promise<Contact[]> {
-    return await db.select().from(contacts).where(
-      or(
-        like(contacts.name, `%${query}%`),
-        like(contacts.nickname, `%${query}%`),
-        like(contacts.role, `%${query}%`)
-      )
+  async searchContacts(query: string, clubId?: number): Promise<Contact[]> {
+    const database = clubId ? await getDbForClub(clubId) : db;
+    const conditions = or(
+      like(contacts.name, `%${query}%`),
+      like(contacts.nickname, `%${query}%`),
+      like(contacts.role, `%${query}%`)
     );
+    
+    const whereClause = clubId 
+      ? and(conditions, eq(contacts.clubId, clubId))
+      : conditions;
+    
+    return await database.select().from(contacts).where(whereClause);
   }
 
   // Conversations

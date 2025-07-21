@@ -2,10 +2,13 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
+import { databaseManager } from "./database-manager";
 import { geminiService } from "./services/gemini";
 import { ttsService } from "./services/tts";
 import { userManagementService } from "./services/user-management";
 import { insertContactSchema, insertFormSchema, insertCalendarEventSchema, insertMemoryItemSchema, insertFollowUpSequenceSchema, insertFollowUpActionSchema, insertUserSchema, insertClubSchema } from "@shared/schema";
+import * as schema from "@shared/schema";
+import { eq } from "drizzle-orm";
 import { followUpProcessor } from "./services/follow-up-processor";
 import { zfd } from "zod-form-data";
 import { z } from "zod";
@@ -280,13 +283,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Contacts API
+  // Club Management API
+  app.get('/api/clubs', async (req, res) => {
+    try {
+      const masterDb = databaseManager.getMasterDb();
+      const clubs = await masterDb.select().from(schema.clubs);
+      res.json(clubs);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch clubs' });
+    }
+  });
+
+  app.post('/api/clubs', async (req, res) => {
+    try {
+      const clubData = insertClubSchema.parse(req.body);
+      const masterDb = databaseManager.getMasterDb();
+      
+      // Create club in master database
+      const [club] = await masterDb.insert(schema.clubs).values(clubData).returning();
+      
+      // Create database for the club (in production this would be a separate database)
+      await databaseManager.createClubDatabase(club.name);
+      
+      // Initialize schema for the club
+      await databaseManager.initializeClubSchema(String(club.id));
+      
+      res.json(club);
+    } catch (error) {
+      console.error('Club creation error:', error);
+      res.status(400).json({ error: 'Failed to create club' });
+    }
+  });
+
+  app.get('/api/clubs/:id', async (req, res) => {
+    try {
+      const masterDb = databaseManager.getMasterDb();
+      const [club] = await masterDb.select().from(schema.clubs).where(eq(schema.clubs.id, parseInt(req.params.id)));
+      
+      if (!club) {
+        return res.status(404).json({ error: 'Club not found' });
+      }
+      
+      res.json(club);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch club' });
+    }
+  });
+
+  // Contacts API (now club-aware)
   app.get('/api/contacts', async (req, res) => {
     try {
-      const { role, status } = req.query;
+      const { role, status, clubId } = req.query;
       const contacts = await storage.getContacts({ 
         role: role as string, 
-        status: status as string 
+        status: status as string,
+        clubId: clubId ? parseInt(clubId as string) : undefined
       });
       res.json(contacts);
     } catch (error) {
@@ -296,7 +347,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/contacts/:id', async (req, res) => {
     try {
-      const contact = await storage.getContact(parseInt(req.params.id));
+      const { clubId } = req.query;
+      const contact = await storage.getContact(
+        parseInt(req.params.id), 
+        clubId ? parseInt(clubId as string) : undefined
+      );
       if (!contact) {
         return res.status(404).json({ error: 'Contact not found' });
       }
@@ -316,7 +371,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         contactData.photoUrl = photoUrl;
       }
       
-      const contact = await storage.createContact(contactData);
+      const contact = await storage.createContact(contactData, contactData.clubId || undefined);
       res.json(contact);
     } catch (error) {
       res.status(400).json({ error: 'Invalid contact data' });
