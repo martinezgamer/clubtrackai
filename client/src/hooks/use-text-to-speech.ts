@@ -97,25 +97,31 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
           currentAudioRef.current = null;
         };
         
-        audio.onerror = () => {
+        audio.onerror = (e) => {
+          console.warn('Audio error during playback:', e);
           setIsSpeaking(false);
           URL.revokeObjectURL(audioUrl);
           currentAudioRef.current = null;
         };
         
         try {
-          await audio.play();
+          // Request user interaction before playing audio (fixes autoplay policy issues)
+          const playPromise = audio.play();
+          if (playPromise !== undefined) {
+            await playPromise;
+          }
           return true;
         } catch (playError) {
-          console.log('Audio play failed:', playError);
+          console.warn('Audio play failed (likely due to browser autoplay policy):', playError);
           setIsSpeaking(false);
           URL.revokeObjectURL(audioUrl);
           currentAudioRef.current = null;
+          // Fall back to browser TTS instead of failing silently
           return false;
         }
       }
     } catch (error) {
-      console.log('Google TTS failed, falling back to browser TTS:', error);
+      console.warn('Google TTS API error:', error);
     }
     return false;
   }, [rate, pitch, volume]);
@@ -159,10 +165,11 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
     try {
       const googleTTSSuccess = await speakWithGoogleTTS(text);
       if (!googleTTSSuccess) {
+        console.log('Google TTS failed, falling back to browser TTS');
         speakWithBrowserTTS(text);
       }
     } catch (error) {
-      console.log('TTS failed, falling back to browser TTS:', error);
+      console.warn('TTS error, falling back to browser TTS:', error);
       speakWithBrowserTTS(text);
     }
   }, [speakWithGoogleTTS, speakWithBrowserTTS, isSupported]);

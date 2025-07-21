@@ -93,7 +93,11 @@ export function useVoiceRecognition(): UseVoiceRecognitionReturn {
 
     return () => {
       if (recognitionRef.current) {
-        recognitionRef.current.stop();
+        try {
+          recognitionRef.current.stop();
+        } catch (error) {
+          console.warn('Error stopping speech recognition during cleanup:', error);
+        }
       }
     };
   }, [isSupported]);
@@ -113,7 +117,12 @@ export function useVoiceRecognition(): UseVoiceRecognitionReturn {
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current && isListening) {
-      recognitionRef.current.stop();
+      try {
+        recognitionRef.current.stop();
+      } catch (error) {
+        console.warn('Error stopping speech recognition:', error);
+        setIsListening(false);
+      }
     }
   }, [isListening]);
 

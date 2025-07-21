@@ -48,8 +48,12 @@ export function useWebSocket(url: string): UseWebSocketReturn {
         // Only reconnect if it wasn't a normal close (1000) or manual close
         if (event.code !== 1000 && event.code !== 1001) {
           const timeout = setTimeout(() => {
-            if (ws.current?.readyState === WebSocket.CLOSED) {
-              connect();
+            try {
+              if (ws.current?.readyState === WebSocket.CLOSED) {
+                connect();
+              }
+            } catch (reconnectError) {
+              console.error('Error during WebSocket reconnection:', reconnectError);
             }
           }, 5000); // Increased delay to 5 seconds
           
