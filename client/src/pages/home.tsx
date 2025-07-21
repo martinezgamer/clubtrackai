@@ -29,12 +29,13 @@ export default function Home() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Shared queries for both desktop and mobile sidebars
-  const { data: sidebarContacts = [] } = useQuery({
-    queryKey: ['/api/contacts'],
-    queryFn: () => contactsApi.getAll({ status: 'active' }),
+  // Main contacts query with role filter
+  const { data: contacts = [], isLoading: contactsLoading } = useQuery({
+    queryKey: ['/api/contacts', roleFilter],
+    queryFn: () => contactsApi.getAll(roleFilter ? { role: roleFilter } : {}),
   });
 
+  // Sidebar data queries
   const { data: memoryItems = [] } = useQuery({
     queryKey: ['/api/memory'],
     queryFn: () => memoryApi.getAll(),
@@ -48,10 +49,15 @@ export default function Home() {
     ),
   });
 
-  const { data: contacts = [], isLoading: contactsLoading } = useQuery({
-    queryKey: ['/api/contacts', roleFilter],
-    queryFn: () => contactsApi.getAll(roleFilter ? { role: roleFilter } : {}),
+  // Use main contacts for sidebar when no role filter is applied, otherwise fetch active contacts
+  const { data: sidebarContacts = [] } = useQuery({
+    queryKey: ['/api/contacts', 'active'],
+    queryFn: () => contactsApi.getAll({ status: 'active' }),
+    enabled: !!roleFilter, // Only fetch if we have a role filter (main query won't have active contacts)
   });
+
+  // Determine which contacts to use for sidebar
+  const finalSidebarContacts = roleFilter ? sidebarContacts : contacts;
 
   const deleteContactMutation = useMutation({
     mutationFn: (id: number) => contactsApi.delete(id),
@@ -445,7 +451,7 @@ export default function Home() {
         <Sidebar
           onContactSelect={handleContactSelect}
           onQuickAction={handleQuickAction}
-          contacts={Array.isArray(sidebarContacts) ? sidebarContacts : []}
+          contacts={Array.isArray(finalSidebarContacts) ? finalSidebarContacts : []}
           memoryItems={Array.isArray(memoryItems) ? memoryItems : []}
           todaysEvents={Array.isArray(todaysEvents) ? todaysEvents : []}
         />
@@ -482,7 +488,7 @@ export default function Home() {
                   handleQuickAction(action);
                   setSidebarOpen(false);
                 }}
-                contacts={Array.isArray(sidebarContacts) ? sidebarContacts : []}
+                contacts={Array.isArray(finalSidebarContacts) ? finalSidebarContacts : []}
                 memoryItems={Array.isArray(memoryItems) ? memoryItems : []}
                 todaysEvents={Array.isArray(todaysEvents) ? todaysEvents : []}
               />
