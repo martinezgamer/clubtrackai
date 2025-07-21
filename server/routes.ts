@@ -23,9 +23,11 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
-// WebSocket connection management
+// Enhanced WebSocket connection management with session tracking
 const clients = new Set<WebSocket>();
 const samSessions = new Map<string, SamAI>();
+const clientSessions = new Map<WebSocket, string>(); // Track which session each client belongs to
+const sessionClients = new Map<string, Set<WebSocket>>(); // Track which clients belong to each session
 
 function broadcastToClients(message: any) {
   const messageStr = JSON.stringify(message);
@@ -125,6 +127,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ws.on('error', (error) => {
       console.error('WebSocket connection error:', error);
       clients.delete(ws);
+      
+      // Clean up session tracking on error
+      const sessionId = clientSessions.get(ws);
+      if (sessionId) {
+        clientSessions.delete(ws);
+        const sessClients = sessionClients.get(sessionId);
+        if (sessClients) {
+          sessClients.delete(ws);
+        }
+      }
     });
 
     ws.on('message', async (data) => {
@@ -134,6 +146,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (message.type === 'chat') {
           const sessionId = message.sessionId || 'default';
           const userId = message.userId; // Get user ID from message for enhanced features
+          
+          // Track this client's session
+          clientSessions.set(ws, sessionId);
+          if (!sessionClients.has(sessionId)) {
+            sessionClients.set(sessionId, new Set());
+          }
+          sessionClients.get(sessionId)!.add(ws);
           
           // Get or create Sam session with user ID for enhanced Bobby experience
           if (!samSessions.has(sessionId)) {
@@ -150,16 +169,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             await handleSamAction(result.action, result.data);
           }
           
-          // Send response back to client
-          ws.send(JSON.stringify({
-            type: 'chat',
-            content: result.response,
-            sender: 'ai',
-            timestamp: new Date().toISOString(),
-            messageType: result.messageType,
-            action: result.action,
-            data: result.data
-          }));
+          // Send response back ONLY to the specific client that sent the message
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+              type: 'chat',
+              content: result.response,
+              sender: 'ai',
+              timestamp: new Date().toISOString(),
+              messageType: result.messageType,
+              action: result.action,
+              data: result.data,
+              sessionId: sessionId // Include session ID in response
+            }));
+          }
         } else if (message.type === 'quickAction') {
           // Handle quick actions from UI
           const action = message.action;
@@ -202,6 +224,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           try {
             const sessionId = message.sessionId || 'default';
             
+            // Track this client's session
+            clientSessions.set(ws, sessionId);
+            if (!sessionClients.has(sessionId)) {
+              sessionClients.set(sessionId, new Set());
+            }
+            sessionClients.get(sessionId)!.add(ws);
+            
             // Get or create Sam session with user ID
             if (!samSessions.has(sessionId)) {
               samSessions.set(sessionId, new SamAI(sessionId, message.userId));
@@ -224,17 +253,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
               await handleSamAction(result.action, result.data);
             }
             
-            // Send response back to client
-            ws.send(JSON.stringify({
-              type: 'chat',
-              content: result.response,
-              sender: 'ai',
-              timestamp: new Date().toISOString(),
-              messageType: result.messageType,
-              action: result.action,
-              data: result.data,
-              imageDescription: imageDescription
-            }));
+            // Send response back ONLY to the specific client that sent the message
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({
+                type: 'chat',
+                content: result.response,
+                sender: 'ai',
+                timestamp: new Date().toISOString(),
+                messageType: result.messageType,
+                action: result.action,
+                data: result.data,
+                imageDescription: imageDescription,
+                sessionId: sessionId
+              }));
+            }
           } catch (error) {
             console.error('Error processing image:', error);
             ws.send(JSON.stringify({
@@ -247,9 +279,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           try {
             const sessionId = message.sessionId || 'default';
             
+            // Track this client's session
+            clientSessions.set(ws, sessionId);
+            if (!sessionClients.has(sessionId)) {
+              sessionClients.set(sessionId, new Set());
+            }
+            sessionClients.get(sessionId)!.add(ws);
+            
             // Get or create Sam session
             if (!samSessions.has(sessionId)) {
-              samSessions.set(sessionId, new SamAI(sessionId));
+              samSessions.set(sessionId, new SamAI(sessionId, message.userId));
             }
             
             const sam = samSessions.get(sessionId)!;
@@ -270,17 +309,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
               await handleSamAction(result.action, result.data);
             }
             
-            // Send response back to client
-            ws.send(JSON.stringify({
-              type: 'chat',
-              content: result.response,
-              sender: 'ai',
-              timestamp: new Date().toISOString(),
-              messageType: result.messageType,
-              action: result.action,
-              data: result.data,
-              documentAnalysis: documentAnalysis
-            }));
+            // Send response back ONLY to the specific client that sent the message
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({
+                type: 'chat',
+                content: result.response,
+                sender: 'ai',
+                timestamp: new Date().toISOString(),
+                messageType: result.messageType,
+                action: result.action,
+                data: result.data,
+                documentAnalysis: documentAnalysis,
+                sessionId: sessionId
+              }));
+            }
           } catch (error) {
             console.error('Error processing document:', error);
             ws.send(JSON.stringify({
@@ -304,6 +346,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     ws.on('close', (code, reason) => {
       clients.delete(ws);
+      
+      // Clean up session tracking
+      const sessionId = clientSessions.get(ws);
+      if (sessionId) {
+        clientSessions.delete(ws);
+        const sessClients = sessionClients.get(sessionId);
+        if (sessClients) {
+          sessClients.delete(ws);
+          // If no more clients for this session, clean up the session
+          if (sessClients.size === 0) {
+            sessionClients.delete(sessionId);
+            // Optionally clean up Sam session after a delay
+            setTimeout(() => {
+              if (!sessionClients.has(sessionId)) {
+                samSessions.delete(sessionId);
+                console.log(`Cleaned up session: ${sessionId}`);
+              }
+            }, 60000); // Clean up after 1 minute of inactivity
+          }
+        }
+      }
+      
       console.log(`Client disconnected from WebSocket (code: ${code}, reason: ${reason})`);
     });
   });

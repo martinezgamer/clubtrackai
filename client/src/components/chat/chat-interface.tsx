@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -55,6 +55,21 @@ export function ChatInterface({ onQuickAction, className }: ChatInterfaceProps) 
   const documentInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+
+  // Generate unique session ID per tab/window with user identification
+  const sessionId = useMemo(() => {
+    if (!user) return 'anonymous-session';
+    
+    // Create a unique session ID that includes user ID and a window-specific identifier
+    const windowId = sessionStorage.getItem('chatWindowId') || 
+      (() => {
+        const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        sessionStorage.setItem('chatWindowId', id);
+        return id;
+      })();
+    
+    return `${user.id}-${windowId}`;
+  }, [user]);
 
   const { lastMessage, sendMessage, readyState } = useWebSocket('/ws');
   const { 
@@ -215,11 +230,12 @@ export function ChatInterface({ onQuickAction, className }: ChatInterfaceProps) 
     setIsTyping(true);
 
     try {
-      // Send message via WebSocket
+      // Send message via WebSocket with unique session ID and user identification
       sendMessage({
         type: 'chat',
         content: inputValue,
-        sessionId: 'bobby-session',
+        sessionId: sessionId,
+        userId: user?.id || 'anonymous',
         history: messages.slice(-10), // Send last 10 messages for context
       });
     } catch (error) {
@@ -407,7 +423,8 @@ export function ChatInterface({ onQuickAction, className }: ChatInterfaceProps) 
                 imageData: base64Data,
                 imageMimeType: file.type,
                 userMessage: fileMessage,
-                sessionId: 'default'
+                sessionId: sessionId,
+                userId: user?.id || 'anonymous'
               });
             } catch (error) {
               console.error('Error processing image:', error);
@@ -441,7 +458,8 @@ export function ChatInterface({ onQuickAction, className }: ChatInterfaceProps) 
             type: 'chat',
             content: fileMessage,
             file: file,
-            sessionId: 'default'
+            sessionId: sessionId,
+            userId: user?.id || 'anonymous'
           });
         }
         
@@ -514,7 +532,8 @@ export function ChatInterface({ onQuickAction, className }: ChatInterfaceProps) 
               documentMimeType: file.type,
               documentName: file.name,
               userMessage: fileMessage,
-              sessionId: 'default'
+              sessionId: sessionId,
+              userId: user?.id || 'anonymous'
             });
           } catch (error) {
             console.error('Error processing document:', error);
