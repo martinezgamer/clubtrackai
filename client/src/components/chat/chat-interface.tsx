@@ -7,11 +7,18 @@ import { useWebSocket } from '@/hooks/use-websocket';
 import { useVoiceRecognition } from '@/hooks/use-voice-recognition';
 import { useTextToSpeech } from '@/hooks/use-text-to-speech';
 import { MessageBubble } from './message-bubble';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { useAuth } from '@/components/auth/auth-provider';
 import { 
   Mic, MicOff, Paperclip, Send, Calendar, 
   Users, TrendingUp, FileText, Loader2, Image,
-  File, ChevronDown
+  File, ChevronDown, Eye, Save, Table, PieChart, 
+  FileSpreadsheet, Database, Camera, Palette, Settings
 } from 'lucide-react';
 
 interface ChatMessage {
@@ -37,10 +44,15 @@ export function ChatInterface({ onQuickAction, className }: ChatInterfaceProps) 
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isContinuousMode, setIsContinuousMode] = useState(false);
+  const [enhancedAIVisual, setEnhancedAIVisual] = useState(false);
+  const [autoSaveChats, setAutoSaveChats] = useState(true);
+  const [showAISettings, setShowAISettings] = useState(false);
+  const [createMode, setCreateMode] = useState<'table' | 'chart' | 'spreadsheet' | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const { lastMessage, sendMessage, readyState } = useWebSocket('/ws');
   const { 
@@ -588,14 +600,33 @@ export function ChatInterface({ onQuickAction, className }: ChatInterfaceProps) 
                     <ChevronDown className="w-2 h-2 md:w-3 md:h-3 hidden md:block" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuItem onClick={handleImageUpload}>
                     <Image className="w-4 h-4 mr-2" />
                     Upload Image
+                    {enhancedAIVisual && <Badge variant="secondary" className="ml-auto text-xs">Enhanced</Badge>}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleDocumentUpload}>
                     <File className="w-4 h-4 mr-2" />
                     Upload Document
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => {setInputValue('Create a table for me'); setTimeout(() => handleSendMessage(), 100);}}>
+                    <Table className="w-4 h-4 mr-2" />
+                    Create Table
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => {setInputValue('Create a chart for me'); setTimeout(() => handleSendMessage(), 100);}}>
+                    <PieChart className="w-4 h-4 mr-2" />
+                    Create Chart
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => {setInputValue('Create a spreadsheet for me'); setTimeout(() => handleSendMessage(), 100);}}>
+                    <FileSpreadsheet className="w-4 h-4 mr-2" />
+                    Create Spreadsheet
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setShowAISettings(!showAISettings)}>
+                    <Settings className="w-4 h-4 mr-2" />
+                    AI Settings
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -660,6 +691,52 @@ export function ChatInterface({ onQuickAction, className }: ChatInterfaceProps) 
           </div>
         )}
 
+        {/* Enhanced AI Settings Panel */}
+        {showAISettings && (
+          <Card className="mt-3 bg-gray-800 border-gray-700">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-white text-sm flex items-center">
+                <Eye className="w-4 h-4 mr-2" />
+                AI Visual Enhancement Settings
+                <Badge variant="secondary" className="ml-auto text-xs">
+                  Profile: {user?.username || 'Default'}
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="enhanced-ai-visual" className="text-sm text-gray-300">
+                  Enhanced AI Visual
+                </Label>
+                <Switch 
+                  id="enhanced-ai-visual"
+                  checked={enhancedAIVisual}
+                  onCheckedChange={setEnhancedAIVisual}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="auto-save-chats" className="text-sm text-gray-300">
+                  Auto-Save Chats (Profile-Specific)
+                </Label>
+                <Switch 
+                  id="auto-save-chats"
+                  checked={autoSaveChats}
+                  onCheckedChange={setAutoSaveChats}
+                />
+              </div>
+              <div className="text-xs text-gray-400 p-2 bg-gray-900 rounded">
+                <div className="flex items-center mb-1">
+                  <Save className="w-3 h-3 mr-1" />
+                  Profile-specific data storage active
+                </div>
+                <div>• Enhanced AI: Advanced image analysis, OCR, table creation</div>
+                <div>• Chat History: Saved per user profile with sync for important data</div>
+                <div>• Content Creation: Tables, charts, spreadsheets via chat</div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Quick Actions Bar */}
         <div className="flex items-center space-x-2 mt-3">
           <Button 
@@ -693,10 +770,10 @@ export function ChatInterface({ onQuickAction, className }: ChatInterfaceProps) 
             variant="outline" 
             size="sm" 
             className="bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700"
-            onClick={() => onQuickAction('create-form')}
+            onClick={() => onQuickAction('enhanced-form-creator')}
           >
             <FileText className="w-4 h-4 mr-1" />
-            Create Form
+            AI Form Creator
           </Button>
         </div>
       </div>

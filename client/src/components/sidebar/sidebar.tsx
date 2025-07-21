@@ -146,25 +146,36 @@ export function Sidebar({ onContactSelect, onQuickAction, contacts = [], memoryI
         </Tabs>
       </div>
 
-      {/* Quick Actions */}
+      {/* Enhanced Quick Actions */}
       <div className="p-4 border-b border-gray-700">
-        <h3 className="text-sm font-medium text-gray-300 mb-3">Quick Actions</h3>
+        <h3 className="text-sm font-medium text-gray-300 mb-3">AI-Enhanced Quick Actions</h3>
         <div className="space-y-2">
           <Button 
             variant="outline" 
             className="w-full justify-start bg-green-500/10 border-green-500/20 text-green-400 hover:bg-green-500/20"
-            onClick={() => onQuickAction('store-dancer')}
+            onClick={() => onQuickAction('enhanced-dancer-store')}
           >
             <UserPlus className="w-4 h-4 mr-2" />
-            Store Dancer
+            AI Dancer Store
+            <Badge variant="secondary" className="ml-auto bg-green-500/20 text-green-300 text-xs">Enhanced</Badge>
           </Button>
           <Button 
             variant="outline" 
             className="w-full justify-start bg-purple-500/10 border-purple-500/20 text-purple-400 hover:bg-purple-500/20"
-            onClick={() => onQuickAction('create-form')}
+            onClick={() => onQuickAction('enhanced-form-creator')}
           >
             <FileText className="w-4 h-4 mr-2" />
-            Create Form
+            AI Form Creator
+            <Badge variant="secondary" className="ml-auto bg-purple-500/20 text-purple-300 text-xs">Enhanced</Badge>
+          </Button>
+          <Button 
+            variant="outline" 
+            className="w-full justify-start bg-pink-500/10 border-pink-500/20 text-pink-400 hover:bg-pink-500/20"
+            onClick={() => onQuickAction('enhanced-social-media')}
+          >
+            <Share2 className="w-4 h-4 mr-2" />
+            AI Social Media
+            <Badge variant="secondary" className="ml-auto bg-pink-500/20 text-pink-300 text-xs">Enhanced</Badge>
           </Button>
           <Button 
             variant="outline" 
@@ -173,14 +184,6 @@ export function Sidebar({ onContactSelect, onQuickAction, contacts = [], memoryI
           >
             <CalendarPlus className="w-4 h-4 mr-2" />
             Add Event
-          </Button>
-          <Button 
-            variant="outline" 
-            className="w-full justify-start bg-pink-500/10 border-pink-500/20 text-pink-400 hover:bg-pink-500/20"
-            onClick={() => onQuickAction('social-media')}
-          >
-            <Share2 className="w-4 h-4 mr-2" />
-            Social Media
           </Button>
           <Button 
             variant="outline" 

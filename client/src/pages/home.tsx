@@ -72,6 +72,20 @@ export default function Home() {
   });
 
   const handleQuickAction = (action: string) => {
+    // Handle enhanced navigation
+    if (action === 'enhanced-social-media') {
+      window.location.href = '/enhanced-social-media';
+      return;
+    }
+    if (action === 'enhanced-form-creator') {
+      window.location.href = '/enhanced-form-creator';
+      return;
+    }
+    if (action === 'enhanced-dancer-store') {
+      window.location.href = '/enhanced-dancer-store';
+      return;
+    }
+    
     switch (action) {
       case 'store-dancer':
         setActiveModal('store-dancer');

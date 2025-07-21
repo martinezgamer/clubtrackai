@@ -10,6 +10,9 @@ import Login from "@/pages/login";
 import UserManagement from "@/pages/user-management";
 import ClubManagement from "@/pages/club-management";
 import NotFound from "@/pages/not-found";
+import EnhancedSocialMedia from "@/pages/enhanced-social-media";
+import EnhancedFormCreator from "@/pages/enhanced-form-creator";
+import EnhancedDancerStore from "@/pages/enhanced-dancer-store";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -49,6 +52,21 @@ function Router() {
       <Route path="/club-management">
         <ProtectedRoute>
           <ClubManagement />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/enhanced-social-media">
+        <ProtectedRoute>
+          <EnhancedSocialMedia />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/enhanced-form-creator">
+        <ProtectedRoute>
+          <EnhancedFormCreator />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/enhanced-dancer-store">
+        <ProtectedRoute>
+          <EnhancedDancerStore />
         </ProtectedRoute>
       </Route>
       <Route component={NotFound} />
