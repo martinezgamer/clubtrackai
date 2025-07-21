@@ -443,21 +443,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/forms', async (req, res) => {
     try {
-      const formData = insertFormSchema.parse(req.body);
-      const form = await storage.createForm(formData);
+      const { enhanced, fields, ...formData } = req.body;
+      const validatedFormData = insertFormSchema.parse(formData);
+      
+      // Store enhanced metadata with the form
+      const enhancedFormData = {
+        ...validatedFormData,
+        metadata: {
+          enhanced: enhanced || false,
+          aiGenerated: fields && fields.length > 0,
+          fieldCount: fields ? fields.length : 0,
+          ...validatedFormData.metadata
+        }
+      };
+      
+      const form = await storage.createForm(enhancedFormData);
+      
+      // Store form fields if provided
+      if (fields && Array.isArray(fields)) {
+        // TODO: Add form fields storage when implementing dynamic forms
+        console.log('Enhanced form created with', fields.length, 'AI-generated fields');
+      }
+      
       res.json(form);
     } catch (error) {
+      console.error('Form creation error:', error);
       res.status(400).json({ error: 'Invalid form data' });
     }
   });
 
+  // Enhanced AI Form Generation API
   app.post('/api/forms/generate', async (req, res) => {
     try {
-      const { formType, context } = req.body;
-      const questions = await geminiService.generateResponse(`Generate form questions for ${formType} with context: ${context}`);
-      res.json({ questions });
+      const { formType, context, enhanced, smartValidation, autoCompletion } = req.body;
+      
+      if (!formType) {
+        return res.status(400).json({ error: 'Form type is required' });
+      }
+
+      const sam = new SamAI();
+      let prompt = `Create a ${formType} form for a gentlemen's club management system.`;
+      
+      if (context) {
+        prompt += ` Context: ${context}`;
+      }
+      
+      if (enhanced === 'true') {
+        prompt += ` Generate enhanced fields with smart validation rules and auto-completion suggestions.`;
+        
+        if (smartValidation === 'true') {
+          prompt += ` Include intelligent validation patterns and error messages.`;
+        }
+        
+        if (autoCompletion === 'true') {
+          prompt += ` Add predictive field suggestions and auto-completion options.`;
+        }
+      }
+      
+      const formStructure = await sam.extractFormInfo(prompt);
+      
+      if (!formStructure) {
+        return res.status(500).json({ error: 'Failed to generate form structure' });
+      }
+
+      // Enhanced field processing
+      let fields = formStructure.fields || [];
+      
+      if (enhanced === 'true') {
+        // Add enhanced properties to each field
+        fields = fields.map((field: any) => ({
+          ...field,
+          id: `field_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          enhanced: true,
+          smartValidation: smartValidation === 'true',
+          autoCompletion: autoCompletion === 'true',
+          placeholder: field.placeholder || `Enter ${field.name.toLowerCase()}...`
+        }));
+      }
+
+      res.json({ 
+        questions: fields,
+        metadata: {
+          enhanced: enhanced === 'true',
+          smartValidation: smartValidation === 'true',
+          autoCompletion: autoCompletion === 'true',
+          generatedAt: new Date().toISOString()
+        }
+      });
     } catch (error) {
-      res.status(500).json({ error: 'Failed to generate form questions' });
+      console.error('Enhanced form generation error:', error);
+      res.status(500).json({ error: 'Failed to generate enhanced form questions' });
     }
   });
 
@@ -699,10 +774,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Social Media Post Generation API
+  // Enhanced Social Media Post Generation API
   app.post('/api/social-media/generate-posts', upload.single('image'), async (req, res) => {
     try {
-      const { prompt } = req.body;
+      const { prompt, enhanced, autoHashtags, platformOptimized } = req.body;
       
       if (!prompt && !req.file) {
         return res.status(400).json({ error: 'Either prompt or image is required' });
@@ -710,23 +785,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let imageBase64 = null;
       let imageMimeType = null;
+      let imageAnalysis = null;
 
       if (req.file) {
         const imageBuffer = fs.readFileSync(req.file.path);
         imageBase64 = imageBuffer.toString('base64');
         imageMimeType = req.file.mimetype;
         
+        // Enhanced AI visual analysis if requested
+        if (enhanced === 'true') {
+          imageAnalysis = await geminiService.analyzeImageForSocialMedia(imageBase64, imageMimeType);
+        }
+        
         // Clean up uploaded file
         fs.unlinkSync(req.file.path);
       }
 
-      const posts = await geminiService.generateSocialMediaPosts(
+      let posts = await geminiService.generateSocialMediaPosts(
         prompt || '',
         imageBase64 || undefined,
         imageMimeType || undefined
       );
 
-      res.json({ posts });
+      // Enhanced features
+      if (enhanced === 'true') {
+        const sam = new SamAI();
+        
+        // Add AI-generated hashtags if requested
+        if (autoHashtags === 'true') {
+          posts = await sam.enhancePostsWithHashtags(posts);
+        }
+        
+        // Platform optimization if requested
+        if (platformOptimized === 'true') {
+          posts = await sam.optimizePostsForPlatforms(posts);
+        }
+      }
+      
+      res.json({ 
+        posts, 
+        imageAnalysis,
+        enhanced: enhanced === 'true'
+      });
     } catch (error) {
       console.error('Social media post generation error:', error);
       res.status(500).json({ error: 'Failed to generate social media posts' });
@@ -917,13 +1017,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Image Analysis for Social Media API
+  // Enhanced Image Analysis for Social Media API
   app.post('/api/social-media/analyze-image', upload.single('image'), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'Image file is required' });
       }
 
+      const { enhanced } = req.body;
       const imageBuffer = fs.readFileSync(req.file.path);
       const imageBase64 = imageBuffer.toString('base64');
       const imageMimeType = req.file.mimetype;
@@ -931,10 +1032,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Clean up uploaded file
       fs.unlinkSync(req.file.path);
 
-      const analysis = await geminiService.analyzeImageForSocialMedia(
-        imageBase64,
-        imageMimeType
-      );
+      let analysis;
+      if (enhanced === 'true') {
+        // Enhanced AI visual analysis with detailed insights
+        const visualAnalysis = await geminiService.analyzeImageForSocialMedia(imageBase64, imageMimeType);
+        
+        // Add additional AI enhancements
+        const ocrText = await geminiService.extractTextFromImage(imageBase64);
+        const sam = new SamAI();
+        const socialSuggestions = await sam.generateSocialSuggestions(visualAnalysis);
+        
+        analysis = {
+          visualAnalysis: visualAnalysis,
+          extractedText: ocrText,
+          socialSuggestions: socialSuggestions,
+          enhanced: true
+        };
+      } else {
+        analysis = await geminiService.analyzeImageForSocialMedia(imageBase64, imageMimeType);
+      }
 
       res.json({ analysis });
     } catch (error) {

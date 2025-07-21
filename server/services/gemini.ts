@@ -883,5 +883,66 @@ export const geminiService = {
       console.error("Document processing error:", error);
       return `Failed to process document "${fileName}": ${error instanceof Error ? error.message : "Unknown error"}`;
     }
+  },
+
+  // Enhanced Social Media AI Methods
+  async enhancePostsWithHashtags(posts: string[]): Promise<string[]> {
+    try {
+      const enhancedPosts = await Promise.all(posts.map(async (post) => {
+        const response = await ai.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: `Add relevant hashtags to this social media post for a gentlemen's club: "${post}". Return only the enhanced post with hashtags.` }]
+            }
+          ]
+        });
+        return response.text || post;
+      }));
+      return enhancedPosts;
+    } catch (error) {
+      console.error("Error enhancing posts with hashtags:", error);
+      return posts; // Return original if enhancement fails
+    }
+  },
+
+  async optimizePostsForPlatforms(posts: string[]): Promise<string[]> {
+    try {
+      const optimizedPosts = await Promise.all(posts.map(async (post) => {
+        const response = await ai.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: `Optimize this social media post for different platforms (Instagram, Twitter, Facebook): "${post}". Create platform-specific versions.` }]
+            }
+          ]
+        });
+        return response.text || post;
+      }));
+      return optimizedPosts;
+    } catch (error) {
+      console.error("Error optimizing posts for platforms:", error);
+      return posts; // Return original if optimization fails
+    }
+  },
+
+  async generateSocialSuggestions(analysis: string): Promise<string> {
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: `Based on this image analysis: "${analysis}", provide strategic social media suggestions for a gentlemen's club including content themes, posting times, and engagement strategies.` }]
+          }
+        ]
+      });
+      return response.text || "No suggestions available";
+    } catch (error) {
+      console.error("Error generating social suggestions:", error);
+      return "Error generating social media suggestions";
+    }
   }
 }
