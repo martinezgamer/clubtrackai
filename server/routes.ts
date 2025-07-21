@@ -1447,5 +1447,205 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // One-Time Links API for Form Generation
+  app.post('/api/generate-form-link', async (req, res) => {
+    try {
+      const { formType, clubId, recipientEmail, recipientName } = req.body;
+      const session = req.session as any;
+      
+      if (!session?.userId) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      // Generate a unique token
+      const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+      
+      // Create expiration time (7 days from now)
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+
+      const link = await storage.createOneTimeLink({
+        token,
+        formType,
+        clubId,
+        createdBy: session.userId,
+        recipientEmail,
+        recipientName,
+        expiresAt,
+        isUsed: false
+      });
+
+      // Create the public form URL
+      const formUrl = `${req.protocol}://${req.get('host')}/public/form?token=${token}`;
+
+      res.json({ 
+        link,
+        formUrl,
+        message: 'One-time form link generated successfully'
+      });
+    } catch (error) {
+      console.error('Generate form link error:', error);
+      res.status(500).json({ error: 'Failed to generate form link' });
+    }
+  });
+
+  // Get one-time link details (for public form)
+  app.get('/api/forms/public/:token', async (req, res) => {
+    try {
+      const { token } = req.params;
+      const link = await storage.getOneTimeLink(token);
+
+      if (!link) {
+        return res.status(404).json({ error: 'Form link not found' });
+      }
+
+      if (link.isUsed) {
+        return res.status(400).json({ error: 'This form link has already been used' });
+      }
+
+      if (new Date() > link.expiresAt) {
+        return res.status(400).json({ error: 'This form link has expired' });
+      }
+
+      // Get club name if available
+      const masterDb = databaseManager.getMasterDb();
+      const [club] = await masterDb.select().from(schema.clubs).where(eq(schema.clubs.id, link.clubId));
+
+      res.json({
+        formType: link.formType,
+        clubName: club?.name || 'Club',
+        recipientName: link.recipientName
+      });
+    } catch (error) {
+      console.error('Get form link error:', error);
+      res.status(500).json({ error: 'Failed to load form' });
+    }
+  });
+
+  // Submit public form
+  app.post('/api/forms/submit/:token', async (req, res) => {
+    try {
+      const { token } = req.params;
+      const formData = req.body;
+      
+      const link = await storage.getOneTimeLink(token);
+
+      if (!link) {
+        return res.status(404).json({ error: 'Form link not found' });
+      }
+
+      if (link.isUsed) {
+        return res.status(400).json({ error: 'This form link has already been used' });
+      }
+
+      if (new Date() > link.expiresAt) {
+        return res.status(400).json({ error: 'This form link has expired' });
+      }
+
+      // Create form submission
+      const submission = await storage.createFormSubmission({
+        linkId: link.id,
+        formType: link.formType,
+        clubId: link.clubId,
+        submitterEmail: formData.email,
+        submitterName: formData.name,
+        formData,
+        status: 'pending'
+      });
+
+      // Mark link as used
+      await storage.markLinkAsUsed(token);
+
+      res.json({
+        submission,
+        message: 'Application submitted successfully'
+      });
+    } catch (error) {
+      console.error('Submit form error:', error);
+      res.status(500).json({ error: 'Failed to submit application' });
+    }
+  });
+
+  // Form Submissions Management
+  app.get('/api/form-submissions', async (req, res) => {
+    try {
+      const session = req.session as any;
+      
+      if (!session?.userId) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const { status, search, clubId } = req.query;
+      
+      const submissions = await storage.getFormSubmissions({
+        status: status as string,
+        search: search as string,
+        clubId: clubId ? parseInt(clubId as string) : undefined
+      });
+
+      res.json(submissions);
+    } catch (error) {
+      console.error('Get form submissions error:', error);
+      res.status(500).json({ error: 'Failed to fetch submissions' });
+    }
+  });
+
+  app.post('/api/form-submissions/:id/review', async (req, res) => {
+    try {
+      const session = req.session as any;
+      
+      if (!session?.userId) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const { id } = req.params;
+      const { action, notes } = req.body;
+
+      if (!['approve', 'reject'].includes(action)) {
+        return res.status(400).json({ error: 'Invalid action' });
+      }
+
+      const submission = await storage.updateFormSubmissionStatus(
+        parseInt(id),
+        action === 'approve' ? 'approved' : 'rejected',
+        session.userId,
+        notes
+      );
+
+      // If approved, could create a contact record automatically
+      if (action === 'approve' && submission.formData) {
+        try {
+          const contactData = {
+            name: submission.submitterName || submission.formData.name || 'Unknown',
+            email: submission.submitterEmail || submission.formData.email || null,
+            phone: submission.formData.phone || null,
+            role: submission.formType,
+            status: 'active' as const,
+            clubId: submission.clubId,
+            notes: `Created from approved ${submission.formType} application`
+          };
+
+          // Add stage name for dancers
+          if (submission.formType === 'dancer' && submission.formData.stageName) {
+            (contactData as any).stageName = submission.formData.stageName;
+          }
+
+          await storage.createContact(contactData);
+        } catch (contactError) {
+          console.error('Failed to create contact from approved application:', contactError);
+          // Don't fail the review process if contact creation fails
+        }
+      }
+
+      res.json({
+        submission,
+        message: `Application ${action}d successfully`
+      });
+    } catch (error) {
+      console.error('Review submission error:', error);
+      res.status(500).json({ error: 'Failed to review submission' });
+    }
+  });
+
   return httpServer;
 }

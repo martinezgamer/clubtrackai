@@ -22,7 +22,7 @@ function getGoogleCredentials() {
       return credentials;
     }
   } catch (error) {
-    console.warn('Failed to parse GOOGLE_CLOUD_CREDENTIALS as JSON. Please ensure it contains valid service account JSON:', error.message);
+    console.warn('Failed to parse GOOGLE_CLOUD_CREDENTIALS as JSON. Please ensure it contains valid service account JSON:', (error as Error).message);
   }
   return undefined;
 }

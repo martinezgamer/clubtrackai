@@ -3,6 +3,7 @@ import {
   calendarEvents, socialMediaContent, memoryItems, salesItems, salesTransactions,
   followUpSequences, followUpActions, followUpExecutions,
   chatHistory, dynamicTables, dynamicTableData,
+  oneTimeLinks, formSubmissions,
   type User, type InsertUser, type Contact, type InsertContact,
   type Conversation, type InsertConversation, type Form, type InsertForm,
   type FormResponse, type InsertFormResponse, type CalendarEvent, type InsertCalendarEvent,
@@ -12,7 +13,8 @@ import {
   type FollowUpSequence, type InsertFollowUpSequence, type FollowUpAction, type InsertFollowUpAction,
   type FollowUpExecution, type InsertFollowUpExecution,
   type ChatHistory, type InsertChatHistory, type DynamicTable, type InsertDynamicTable,
-  type DynamicTableData, type InsertDynamicTableData
+  type DynamicTableData, type InsertDynamicTableData,
+  type OneTimeLink, type InsertOneTimeLink, type FormSubmission, type InsertFormSubmission
 } from "@shared/schema";
 import { db } from "./db";
 import { databaseManager, getDbForClub, getDbForUser } from "./database-manager";
@@ -125,6 +127,18 @@ export interface IStorage {
   createDynamicTableData(data: InsertDynamicTableData): Promise<DynamicTableData>;
   updateDynamicTableData(id: number, data: Partial<InsertDynamicTableData>): Promise<DynamicTableData>;
   deleteDynamicTableData(id: number): Promise<void>;
+
+  // One-Time Links for Forms
+  createOneTimeLink(link: InsertOneTimeLink): Promise<OneTimeLink>;
+  getOneTimeLink(token: string): Promise<OneTimeLink | undefined>;
+  getOneTimeLinksByClub(clubId: number): Promise<OneTimeLink[]>;
+  markLinkAsUsed(token: string): Promise<void>;
+  
+  // Form Submissions
+  createFormSubmission(submission: InsertFormSubmission): Promise<FormSubmission>;
+  getFormSubmissions(filters?: { status?: string; clubId?: number; search?: string }): Promise<FormSubmission[]>;
+  getFormSubmission(id: number): Promise<FormSubmission | undefined>;
+  updateFormSubmissionStatus(id: number, status: 'approved' | 'rejected', reviewedBy: number, reviewNotes?: string): Promise<FormSubmission>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -702,6 +716,92 @@ export class DatabaseStorage implements IStorage {
 
   async deleteDynamicTableData(id: number): Promise<void> {
     await db.delete(dynamicTableData).where(eq(dynamicTableData.id, id));
+  }
+
+  // One-Time Links for Forms
+  async createOneTimeLink(link: InsertOneTimeLink): Promise<OneTimeLink> {
+    const masterDb = databaseManager.getMasterDb();
+    const [created] = await masterDb.insert(oneTimeLinks).values(link).returning();
+    return created;
+  }
+
+  async getOneTimeLink(token: string): Promise<OneTimeLink | undefined> {
+    const masterDb = databaseManager.getMasterDb();
+    const [link] = await masterDb.select().from(oneTimeLinks)
+      .where(eq(oneTimeLinks.token, token));
+    return link || undefined;
+  }
+
+  async getOneTimeLinksByClub(clubId: number): Promise<OneTimeLink[]> {
+    const masterDb = databaseManager.getMasterDb();
+    return await masterDb.select().from(oneTimeLinks)
+      .where(eq(oneTimeLinks.clubId, clubId))
+      .orderBy(desc(oneTimeLinks.createdAt));
+  }
+
+  async markLinkAsUsed(token: string): Promise<void> {
+    const masterDb = databaseManager.getMasterDb();
+    await masterDb.update(oneTimeLinks)
+      .set({ isUsed: true, usedAt: new Date() })
+      .where(eq(oneTimeLinks.token, token));
+  }
+
+  // Form Submissions
+  async createFormSubmission(submission: InsertFormSubmission): Promise<FormSubmission> {
+    const masterDb = databaseManager.getMasterDb();
+    const [created] = await masterDb.insert(formSubmissions).values(submission).returning();
+    return created;
+  }
+
+  async getFormSubmissions(filters?: { status?: string; clubId?: number; search?: string }): Promise<FormSubmission[]> {
+    const masterDb = databaseManager.getMasterDb();
+    
+    if (filters?.status || filters?.clubId || filters?.search) {
+      const conditions = [];
+      if (filters.status && filters.status !== 'all') {
+        conditions.push(eq(formSubmissions.status, filters.status));
+      }
+      if (filters.clubId) {
+        conditions.push(eq(formSubmissions.clubId, filters.clubId));
+      }
+      if (filters.search) {
+        conditions.push(
+          or(
+            ilike(formSubmissions.submitterName, `%${filters.search}%`),
+            ilike(formSubmissions.submitterEmail, `%${filters.search}%`)
+          )
+        );
+      }
+      
+      return await masterDb.select().from(formSubmissions)
+        .where(and(...conditions))
+        .orderBy(desc(formSubmissions.createdAt));
+    }
+    
+    return await masterDb.select().from(formSubmissions)
+      .orderBy(desc(formSubmissions.createdAt));
+  }
+
+  async getFormSubmission(id: number): Promise<FormSubmission | undefined> {
+    const masterDb = databaseManager.getMasterDb();
+    const [submission] = await masterDb.select().from(formSubmissions)
+      .where(eq(formSubmissions.id, id));
+    return submission || undefined;
+  }
+
+  async updateFormSubmissionStatus(id: number, status: 'approved' | 'rejected', reviewedBy: number, reviewNotes?: string): Promise<FormSubmission> {
+    const masterDb = databaseManager.getMasterDb();
+    const [updated] = await masterDb.update(formSubmissions)
+      .set({ 
+        status, 
+        reviewedBy, 
+        reviewedAt: new Date(),
+        reviewNotes,
+        updatedAt: new Date()
+      })
+      .where(eq(formSubmissions.id, id))
+      .returning();
+    return updated;
   }
 }
 

@@ -3,6 +3,9 @@ import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Import one-time links schema
+export * from "./one-time-links-schema";
+
 // Clubs table
 export const clubs = pgTable("clubs", {
   id: serial("id").primaryKey(),

@@ -13,6 +13,8 @@ import NotFound from "@/pages/not-found";
 import EnhancedSocialMedia from "@/pages/enhanced-social-media";
 import EnhancedFormCreator from "@/pages/enhanced-form-creator";
 import EnhancedDancerStore from "@/pages/enhanced-dancer-store";
+import PublicFormSubmission from "@/pages/public-form-submission";
+import FormSubmissionsDashboard from "@/pages/form-submissions-dashboard";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -68,6 +70,14 @@ function Router() {
         <ProtectedRoute>
           <EnhancedDancerStore />
         </ProtectedRoute>
+      </Route>
+      <Route path="/form-submissions">
+        <ProtectedRoute>
+          <FormSubmissionsDashboard />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/public/form">
+        {() => <PublicFormSubmission />}
       </Route>
       <Route component={NotFound} />
     </Switch>

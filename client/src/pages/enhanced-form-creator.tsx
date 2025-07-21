@@ -15,12 +15,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Plus, Minus, GripVertical, Type, List, CheckSquare, 
   Calendar, Clock, Hash, Mail, Phone, Sparkles, Brain,
-  Wand2, Eye, Save, FileText, Database, Settings
+  Wand2, Eye, Save, FileText, Database, Settings, Home,
+  Link as LinkIcon, Send
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { formsApi } from '@/lib/api';
 import { useAuth } from '@/components/auth/auth-provider';
 import { z } from 'zod';
+import { Link } from 'wouter';
 
 const formSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -54,9 +56,38 @@ export default function EnhancedFormCreator({ onSave, onCancel }: EnhancedFormCr
   const [chatPrefillData, setChatPrefillData] = useState<any>(null);
   const [formType, setFormType] = useState('');
   const [context, setContext] = useState('');
+  const [showOneTimeLinkGenerator, setShowOneTimeLinkGenerator] = useState(false);
+  const [linkData, setLinkData] = useState({ recipientEmail: '', recipientName: '', clubId: 1 });
+  const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+
+  const generateLinkMutation = useMutation({
+    mutationFn: async (data: { formType: string; clubId: number; recipientEmail: string; recipientName: string }) => {
+      const response = await fetch('/api/generate-form-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error('Failed to generate link');
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setGeneratedLink(data.formUrl);
+      toast({
+        title: "Link Generated!",
+        description: "One-time form link created successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to generate form link",
+        variant: "destructive",
+      });
+    },
+  });
 
   // Check for pre-filled data from chat
   useEffect(() => {
@@ -250,22 +281,157 @@ export default function EnhancedFormCreator({ onSave, onCancel }: EnhancedFormCr
   ];
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Enhanced AI Form Creator</h1>
-          <p className="text-gray-400 mt-2">Build intelligent forms with advanced AI assistance</p>
+    <div className="min-h-screen bg-gray-900 p-4 md:p-6">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Mobile-Friendly Header with Home Button */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 space-y-4 md:space-y-0">
+          <div className="flex items-center space-x-4">
+            <Link href="/">
+              <Button variant="outline" size="sm" className="border-gray-600 text-gray-300 hover:bg-gray-700">
+                <Home className="w-4 h-4 mr-2" />
+                Home
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-white">Enhanced AI Form Creator</h1>
+              <p className="text-gray-400 mt-1 text-sm md:text-base">Build intelligent forms with advanced AI assistance</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {chatPrefillData && (
+              <Badge variant="secondary" className="bg-blue-500/20 text-blue-300">
+                <Brain className="w-3 h-3 mr-1" />
+                Pre-filled from Chat
+              </Badge>
+            )}
+            <Button 
+              onClick={() => setShowOneTimeLinkGenerator(!showOneTimeLinkGenerator)}
+              variant="outline" 
+              size="sm"
+              className="border-blue-600 text-blue-300 hover:bg-blue-600/20"
+            >
+              <LinkIcon className="w-4 h-4 mr-2" />
+              Generate Link
+            </Button>
+          </div>
         </div>
-        {chatPrefillData && (
-          <Badge variant="secondary" className="bg-blue-500/20 text-blue-300">
-            <Brain className="w-3 h-3 mr-1" />
-            Pre-filled from Chat
-          </Badge>
-        )}
-      </div>
 
-      {/* Enhanced AI Settings */}
-      <Card className="bg-gray-800 border-gray-700">
+        {/* One-Time Link Generator */}
+        {showOneTimeLinkGenerator && (
+          <Card className="bg-gray-800 border-gray-700">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center">
+                <LinkIcon className="w-5 h-5 mr-2" />
+                Generate One-Time Form Link
+              </CardTitle>
+              <CardDescription className="text-gray-400">
+                Create a secure link to send to applicants for form completion
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-white">Form Type</Label>
+                  <Input
+                    value={formType}
+                    onChange={(e) => setFormType(e.target.value)}
+                    placeholder="manager, dancer, staff, etc."
+                    className="bg-gray-700 border-gray-600 text-white"
+                  />
+                </div>
+                <div>
+                  <Label className="text-white">Club ID</Label>
+                  <Input
+                    type="number"
+                    value={linkData.clubId}
+                    onChange={(e) => setLinkData({...linkData, clubId: parseInt(e.target.value) || 1})}
+                    className="bg-gray-700 border-gray-600 text-white"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-white">Recipient Name</Label>
+                  <Input
+                    value={linkData.recipientName}
+                    onChange={(e) => setLinkData({...linkData, recipientName: e.target.value})}
+                    placeholder="John Doe"
+                    className="bg-gray-700 border-gray-600 text-white"
+                  />
+                </div>
+                <div>
+                  <Label className="text-white">Recipient Email</Label>
+                  <Input
+                    type="email"
+                    value={linkData.recipientEmail}
+                    onChange={(e) => setLinkData({...linkData, recipientEmail: e.target.value})}
+                    placeholder="john@example.com"
+                    className="bg-gray-700 border-gray-600 text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="flex space-x-3">
+                <Button
+                  onClick={() => generateLinkMutation.mutate({
+                    formType,
+                    clubId: linkData.clubId,
+                    recipientEmail: linkData.recipientEmail,
+                    recipientName: linkData.recipientName
+                  })}
+                  disabled={!formType || generateLinkMutation.isPending}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {generateLinkMutation.isPending ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 mr-2" />
+                      Generate Link
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={() => setShowOneTimeLinkGenerator(false)}
+                  variant="outline"
+                  className="border-gray-600 text-gray-300"
+                >
+                  Cancel
+                </Button>
+              </div>
+
+              {generatedLink && (
+                <div className="mt-4 p-4 bg-gray-900 rounded-lg">
+                  <Label className="text-white">Generated Link (Copy & Send):</Label>
+                  <div className="flex items-center space-x-2 mt-2">
+                    <Input
+                      value={generatedLink}
+                      readOnly
+                      className="bg-gray-700 border-gray-600 text-white"
+                    />
+                    <Button
+                      onClick={() => {
+                        navigator.clipboard.writeText(generatedLink);
+                        toast({ title: "Copied!", description: "Link copied to clipboard" });
+                      }}
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      Copy
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Enhanced AI Settings */}
+        <Card className="bg-gray-800 border-gray-700">
         <CardHeader>
           <CardTitle className="text-white flex items-center">
             <Sparkles className="w-5 h-5 mr-2" />
@@ -616,6 +782,7 @@ export default function EnhancedFormCreator({ onSave, onCancel }: EnhancedFormCr
           )}
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }
