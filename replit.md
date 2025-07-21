@@ -18,6 +18,8 @@ Company branding: Smart Tools 4U with tagline "AI and people meet as one" - inte
   - Enhanced speech recognition error handling and cleanup
   - Added React Error Boundaries for component-level error catching
   - Improved global error handlers to filter out known browser limitations
+  - Fixed sidebar tab buttons not working due to conflicting Tabs components
+  - Prevented Sam's repetitive welcome messages by using session storage tracking
 
 ✓ **Enhanced Error Handling**: Systematic improvements across all systems
   - TTS fallback mechanism from Google Cloud TTS to browser TTS

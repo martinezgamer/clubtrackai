@@ -55,37 +55,47 @@ export function ChatInterface({ onQuickAction, className }: ChatInterfaceProps) 
   
   const { speak, stop, isSpeaking } = useTextToSpeech();
 
-  // Add welcome message on mount
+  // Add welcome message on mount (only once per session)
   useEffect(() => {
-    const welcomeMessages = [
-      "Hey! Sam here, ready to help you manage the club. What's the situation today?",
-      "What's up? Sam's online and ready to handle whatever you need - contacts, scheduling, you name it.",
-      "Hey there! Sam checking in. I'm your chill AI assistant for all the club management stuff. What's going on?",
-      "Yo! Sam here. Ready to help with dancers, schedules, forms, or whatever else you need sorted. What's up?",
-      "Hey! Sam's here and ready to roll. Need help with contacts, scheduling, or just want to chat about club operations?",
-      "What's good? Sam here, your laid-back AI buddy for club management. Ready to tackle whatever you throw at me.",
-      "Hey there! Sam reporting for duty. I'm here to help with all your club management needs. What's the plan today?",
-      "Sup! Sam here, ready to help you keep everything organized. Contacts, schedules, forms - I got you covered.",
-    ];
+    const welcomeShown = sessionStorage.getItem('samWelcomeShown');
     
-    const randomWelcome = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
-    
-    const welcomeMessage: ChatMessage = {
-      id: 'welcome',
-      content: randomWelcome,
-      sender: 'ai',
-      timestamp: new Date().toISOString(),
-    };
-    setMessages([welcomeMessage]);
-    
-    // Auto-speak the welcome message only once
-    const timer = setTimeout(() => {
-      if (!isSpeaking) {
-        speak(welcomeMessage.content);
-      }
-    }, 1000); // Delay to ensure page is loaded
-    
-    return () => clearTimeout(timer);
+    if (!welcomeShown) {
+      const welcomeMessages = [
+        "Hey! Sam here, ready to help you manage the club. What's the situation today?",
+        "What's up? Sam's online and ready to handle whatever you need - contacts, scheduling, you name it.",
+        "Hey there! Sam checking in. I'm your chill AI assistant for all the club management stuff. What's going on?",
+        "Yo! Sam here. Ready to help with dancers, schedules, forms, or whatever else you need sorted. What's up?",
+        "Hey! Sam's here and ready to roll. Need help with contacts, scheduling, or just want to chat about club operations?",
+        "What's good? Sam here, your laid-back AI buddy for club management. Ready to tackle whatever you throw at me.",
+        "Hey there! Sam reporting for duty. I'm here to help with all your club management needs. What's the plan today?",
+        "Sup! Sam here, ready to help you keep everything organized. Contacts, schedules, forms - I got you covered.",
+      ];
+      
+      const randomWelcome = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
+      
+      const welcomeMessage: ChatMessage = {
+        id: 'welcome',
+        content: randomWelcome,
+        sender: 'ai',
+        timestamp: new Date().toISOString(),
+      };
+      setMessages([welcomeMessage]);
+      
+      // Mark welcome as shown for this session
+      sessionStorage.setItem('samWelcomeShown', 'true');
+      
+      // Auto-speak the welcome message only once
+      const timer = setTimeout(() => {
+        if (!isSpeaking) {
+          speak(welcomeMessage.content);
+        }
+      }, 1000); // Delay to ensure page is loaded
+      
+      return () => clearTimeout(timer);
+    } else {
+      // Just set an empty messages array if welcome was already shown
+      setMessages([]);
+    }
   }, []); // Remove speak dependency to avoid re-runs
 
   // Handle WebSocket messages
