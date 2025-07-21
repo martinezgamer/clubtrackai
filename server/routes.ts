@@ -95,12 +95,37 @@ async function handleSamAction(action: string, data: any) {
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
 
-  // WebSocket server for real-time chat
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  // WebSocket server for real-time chat with improved stability
+  const wss = new WebSocketServer({ 
+    server: httpServer, 
+    path: '/ws',
+    perMessageDeflate: false, // Disable compression to reduce overhead
+    maxPayload: 16 * 1024 * 1024 // 16MB max payload
+  });
+  
+  // Add ping/pong heartbeat to keep connections alive
+  const pingInterval = setInterval(() => {
+    wss.clients.forEach((ws) => {
+      if (ws.readyState === ws.OPEN) {
+        ws.ping();
+      }
+    });
+  }, 30000); // Ping every 30 seconds
   
   wss.on('connection', (ws) => {
     clients.add(ws);
     console.log('Client connected to WebSocket');
+
+    // Handle pong responses to keep connection alive
+    ws.on('pong', () => {
+      // Connection is alive
+    });
+
+    // Set up error handling
+    ws.on('error', (error) => {
+      console.error('WebSocket connection error:', error);
+      clients.delete(ws);
+    });
 
     ws.on('message', async (data) => {
       try {
@@ -277,9 +302,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
 
-    ws.on('close', () => {
+    ws.on('close', (code, reason) => {
       clients.delete(ws);
-      console.log('Client disconnected from WebSocket');
+      console.log(`Client disconnected from WebSocket (code: ${code}, reason: ${reason})`);
     });
   });
 
@@ -1645,6 +1670,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Review submission error:', error);
       res.status(500).json({ error: 'Failed to review submission' });
     }
+  });
+
+  // Add cleanup function for when the server shuts down
+  httpServer.on('close', () => {
+    clearInterval(pingInterval);
+    wss.close();
   });
 
   return httpServer;

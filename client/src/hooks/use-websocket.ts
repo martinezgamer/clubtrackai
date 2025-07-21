@@ -19,16 +19,32 @@ export function useWebSocket(url: string): UseWebSocketReturn {
   const [readyState, setReadyState] = useState<number>(WebSocket.CONNECTING);
   const ws = useRef<WebSocket | null>(null);
   const reconnectTimeouts = useRef<NodeJS.Timeout[]>([]);
+  const reconnectAttempts = useRef<number>(0);
+  const maxReconnectAttempts = 5;
+  const isManualClose = useRef<boolean>(false);
 
   const connect = useCallback(() => {
+    // Don't attempt to connect if we've exceeded max attempts
+    if (reconnectAttempts.current >= maxReconnectAttempts) {
+      console.warn('Max WebSocket reconnection attempts reached');
+      return;
+    }
+
     try {
+      // Clean up existing connection if any
+      if (ws.current && ws.current.readyState !== WebSocket.CLOSED) {
+        ws.current.close();
+      }
+
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const wsUrl = `${protocol}//${window.location.host}/ws`;
       
+      setReadyState(WebSocket.CONNECTING);
       ws.current = new WebSocket(wsUrl);
       
       ws.current.onopen = () => {
         setReadyState(WebSocket.OPEN);
+        reconnectAttempts.current = 0; // Reset counter on successful connection
         console.log('WebSocket connected');
       };
       
@@ -45,17 +61,29 @@ export function useWebSocket(url: string): UseWebSocketReturn {
         setReadyState(WebSocket.CLOSED);
         console.log('WebSocket disconnected', event.code, event.reason);
         
-        // Only reconnect if it wasn't a normal close (1000) or manual close
-        if (event.code !== 1000 && event.code !== 1001) {
+        // Only reconnect if:
+        // 1. It wasn't a manual close
+        // 2. It wasn't a normal close (1000) or going away (1001)
+        // 3. We haven't exceeded max attempts
+        if (!isManualClose.current && 
+            event.code !== 1000 && 
+            event.code !== 1001 && 
+            reconnectAttempts.current < maxReconnectAttempts) {
+          
+          reconnectAttempts.current++;
+          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000); // Exponential backoff, max 30s
+          
+          console.log(`Attempting WebSocket reconnection ${reconnectAttempts.current}/${maxReconnectAttempts} in ${delay}ms`);
+          
           const timeout = setTimeout(() => {
             try {
-              if (ws.current?.readyState === WebSocket.CLOSED) {
+              if (ws.current?.readyState === WebSocket.CLOSED && !isManualClose.current) {
                 connect();
               }
             } catch (reconnectError) {
               console.error('Error during WebSocket reconnection:', reconnectError);
             }
-          }, 5000); // Increased delay to 5 seconds
+          }, delay);
           
           reconnectTimeouts.current.push(timeout);
         }
@@ -73,15 +101,20 @@ export function useWebSocket(url: string): UseWebSocketReturn {
   }, []);
 
   useEffect(() => {
+    isManualClose.current = false;
     connect();
     
     return () => {
+      // Mark as manual close to prevent reconnection
+      isManualClose.current = true;
+      
       // Clear all reconnection timeouts
       reconnectTimeouts.current.forEach(timeout => clearTimeout(timeout));
       reconnectTimeouts.current = [];
       
-      if (ws.current) {
-        ws.current.close();
+      // Close connection if open
+      if (ws.current && ws.current.readyState !== WebSocket.CLOSED) {
+        ws.current.close(1000, 'Component unmounting');
       }
     };
   }, [connect]);

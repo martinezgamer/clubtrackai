@@ -12,6 +12,15 @@ Company branding: Smart Tools 4U with tagline "AI and people meet as one" - spec
 
 ## Recent Updates (July 21, 2025)
 
+✓ **WebSocket Connection Stability Improvements**: Enhanced real-time communication reliability
+  - **Exponential Backoff Reconnection**: Implemented smart reconnection logic with exponential backoff (1s to 30s max)
+  - **Connection Limit Management**: Added maximum reconnection attempts (5) to prevent infinite retry loops
+  - **Server-Side Heartbeat**: Added ping/pong mechanism every 30 seconds to maintain connection health
+  - **Enhanced Error Handling**: Improved WebSocket error handling with detailed logging and graceful cleanup
+  - **Manual Close Detection**: Proper detection of manual vs abnormal connection closures
+  - **Resource Cleanup**: Added proper cleanup for ping intervals and WebSocket resources on server shutdown
+  - **Connection Stability**: Reduced frequent disconnections and reconnections for better user experience
+
 ✓ **Terminology Updates & Navigation Improvements**: Fixed "Dancer Store" naming and added home buttons
   - **Professional Terminology**: Updated "Enhanced AI Dancer Store" to "Dancer Profile Management"
   - **Navigation Enhancement**: Added "Back to Dashboard" buttons on Enhanced Form Creator page  
