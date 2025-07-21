@@ -1,16 +1,22 @@
-# Smart Tools 4U - AI Club Management System
+# Smart Tools 4U - Club Management AI System
 
 ## Overview
 
-This is a full-stack web application designed to help Bobby manage his fantasy gentlemen's club operations. The system combines modern web technologies with AI assistance to streamline club management tasks including contact management, scheduling, form creation, and chat-based assistance with FRIDAY - an Iron Man-inspired AI assistant with natural voice interaction capabilities.
+This is a comprehensive Club Tracker AI platform designed specifically for managing gentlemen's club operations. The system serves as an intelligent Club Management AI that combines modern web technologies with AI assistance to streamline all aspects of club operations including contact management, dancer tracking, scheduling, form creation, and chat-based assistance with Sam - a chill, laid-back AI assistant with natural voice interaction capabilities.
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
-AI personality: Sam - chill, laid-back, and friendly AI assistant. Casual and relaxed like talking to a helpful buddy.
-Company branding: Smart Tools 4U with tagline "AI and people meet as one" - integrated throughout the application interface.
+AI personality: Sam - chill, laid-back, and friendly Club Management AI assistant. Casual and relaxed like talking to a helpful buddy who understands the gentlemen's club industry.
+Company branding: Smart Tools 4U with tagline "AI and people meet as one" - specialized Club Tracker AI for gentlemen's club management integrated throughout the application interface.
 
 ## Recent Updates (July 21, 2025)
+
+✓ **Terminology Update**: Rebranded as "Club Management AI" and "Club Tracker AI"
+  - Updated documentation to emphasize "Club Management AI" branding throughout
+  - Clarified that this is specifically designed for gentlemen's club operations
+  - Enhanced AI assistant description to reflect club management specialization
+  - All UI components already properly aligned with club management terminology
 
 ✓ **Multi-Tenant Database Architecture**: Complete data isolation system
   - Implemented separate databases per club for complete data isolation
@@ -91,8 +97,8 @@ Company branding: Smart Tools 4U with tagline "AI and people meet as one" - inte
 
 ## Key Components
 
-### 1. Contact Management System
-- **Purpose**: Track dancers, staff, regulars, friends, and family
+### 1. Club Contact Management System
+- **Purpose**: Comprehensive tracking system for dancers, staff, regulars, friends, and family within the gentlemen's club ecosystem
 - **Features**: 
   - Contact profiles with photos and detailed information
   - Role-based categorization (dancer, staff, regular, family, friend)
@@ -100,8 +106,8 @@ Company branding: Smart Tools 4U with tagline "AI and people meet as one" - inte
   - Notes and preferences storage
   - Search and filtering capabilities
 
-### 2. Sam AI Assistant
-- **Purpose**: Provide intelligent assistance for club operations with a chill, friendly personality
+### 2. Sam Club Management AI Assistant
+- **Purpose**: Provide intelligent Club Tracker AI assistance for gentlemen's club operations with a chill, friendly personality
 - **Features**:
   - Real-time WebSocket-based chat with persistent sessions
   - Context-aware responses using club data and conversation history
