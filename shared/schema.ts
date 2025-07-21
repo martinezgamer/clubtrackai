@@ -411,6 +411,7 @@ export const insertUserClubAssignmentSchema = createInsertSchema(userClubAssignm
 export const insertContactSchema = createInsertSchema(contacts).pick({
   name: true,
   nickname: true,
+  stageName: true,
   role: true,
   phone: true,
   email: true,

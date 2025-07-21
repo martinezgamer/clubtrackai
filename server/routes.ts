@@ -363,7 +363,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/contacts', upload.single('photo'), async (req, res) => {
     try {
+      console.log('Received contact data:', req.body);
+      
+      // Parse and validate contact data
       const contactData = insertContactSchema.parse(req.body);
+      console.log('Parsed contact data:', contactData);
       
       // Handle photo upload
       if (req.file) {
@@ -372,9 +376,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const contact = await storage.createContact(contactData, contactData.clubId || undefined);
+      console.log('Created contact:', contact);
       res.json(contact);
     } catch (error) {
-      res.status(400).json({ error: 'Invalid contact data' });
+      console.error('Contact creation error:', error);
+      if (error instanceof z.ZodError) {
+        console.error('Validation errors:', error.errors);
+        res.status(400).json({ 
+          error: 'Invalid contact data', 
+          details: error.errors.map(e => `${e.path.join('.')}: ${e.message}`)
+        });
+      } else {
+        res.status(400).json({ 
+          error: 'Invalid contact data',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
     }
   });
 
