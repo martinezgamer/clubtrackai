@@ -185,8 +185,8 @@ export default function UserManagement() {
   });
 
   const handleCreateUser = () => {
-    if (!newUserData.username || !newUserData.password || !newUserData.roleId) {
-      toast({ title: "Please fill in all required fields", variant: "destructive" });
+    if (!newUserData.username || !newUserData.password || !newUserData.roleId || newUserData.clubIds.length === 0) {
+      toast({ title: "Please fill in all required fields including club assignments", variant: "destructive" });
       return;
     }
     console.log('Creating user with data:', newUserData);
@@ -338,8 +338,50 @@ export default function UserManagement() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button onClick={handleCreateUser} className="w-full">
-                    Create User
+                  <div>
+                    <Label>Club Assignments *</Label>
+                    <div className="bg-gray-700 border border-gray-600 rounded-md p-3 max-h-32 overflow-y-auto">
+                      {clubs.length === 0 ? (
+                        <p className="text-gray-400 text-sm">No clubs available. Create a club first.</p>
+                      ) : (
+                        clubs.map((club: any) => (
+                          <div key={club.id} className="flex items-center space-x-2 mb-2 last:mb-0">
+                            <input
+                              type="checkbox"
+                              id={`club-${club.id}`}
+                              checked={newUserData.clubIds.includes(club.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setNewUserData(prev => ({
+                                    ...prev,
+                                    clubIds: [...prev.clubIds, club.id]
+                                  }));
+                                } else {
+                                  setNewUserData(prev => ({
+                                    ...prev,
+                                    clubIds: prev.clubIds.filter(id => id !== club.id)
+                                  }));
+                                }
+                              }}
+                              className="rounded border-gray-500 bg-gray-600 text-blue-600 focus:ring-blue-500"
+                            />
+                            <label htmlFor={`club-${club.id}`} className="text-sm text-white cursor-pointer">
+                              {club.displayName}
+                            </label>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    {newUserData.clubIds.length === 0 && (
+                      <p className="text-sm text-red-400 mt-1">Select at least one club</p>
+                    )}
+                  </div>
+                  <Button 
+                    onClick={handleCreateUser} 
+                    className="w-full"
+                    disabled={createUserMutation.isPending || newUserData.clubIds.length === 0}
+                  >
+                    {createUserMutation.isPending ? 'Creating...' : 'Create User'}
                   </Button>
                 </div>
               </DialogContent>

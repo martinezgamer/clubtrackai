@@ -10,6 +10,7 @@ interface ContactCardProps {
     id: number;
     name: string;
     nickname?: string;
+    stageName?: string;
     role: string;
     phone?: string;
     email?: string;
@@ -82,6 +83,9 @@ export function ContactCard({
                     </span>
                   )}
                 </h3>
+                {contact.stageName && contact.role === 'dancer' && (
+                  <p className="text-purple-400 text-sm">Stage: {contact.stageName}</p>
+                )}
                 <div className="flex items-center space-x-2 mt-1">
                   <Badge className={getRoleColor(contact.role)}>
                     {contact.role}

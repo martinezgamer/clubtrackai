@@ -17,6 +17,7 @@ import { z } from 'zod';
 const contactFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   nickname: z.string().optional(),
+  stageName: z.string().optional(),
   role: z.string().min(1, 'Role is required'),
   phone: z.string().optional(),
   email: z.string().email('Invalid email').optional().or(z.literal('')),
@@ -38,6 +39,9 @@ export function ContactForm({ contact, onSave, onCancel }: ContactFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Watch the role field to conditionally show stage name
+  const watchedRole = watch('role');
+
   const {
     register,
     handleSubmit,
@@ -49,6 +53,7 @@ export function ContactForm({ contact, onSave, onCancel }: ContactFormProps) {
     defaultValues: {
       name: contact?.name || '',
       nickname: contact?.nickname || '',
+      stageName: contact?.stageName || '',
       role: contact?.role || '',
       phone: contact?.phone || '',
       email: contact?.email || '',
@@ -222,6 +227,21 @@ export function ContactForm({ contact, onSave, onCancel }: ContactFormProps) {
                 placeholder="Optional nickname"
               />
             </div>
+
+            {/* Stage Name field - only visible for dancers */}
+            {watchedRole === 'dancer' && (
+              <div>
+                <Label htmlFor="stageName" className="text-white">
+                  Stage Name
+                </Label>
+                <Input
+                  id="stageName"
+                  {...register('stageName')}
+                  className="bg-gray-700 border-gray-600 text-white"
+                  placeholder="Performance/stage name"
+                />
+              </div>
+            )}
 
             <div>
               <Label htmlFor="role" className="text-white">

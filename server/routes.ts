@@ -745,11 +745,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/users', async (req, res) => {
     try {
-      const userData = insertUserSchema.extend({
-        clubIds: z.array(z.number()).optional(),
-      }).parse(req.body);
+      const { clubIds, ...userData } = req.body;
       
-      const user = await userManagementService.createUser(userData);
+      // Parse user data (without clubIds)
+      const validatedUserData = insertUserSchema.parse(userData);
+      
+      // Create user
+      const user = await userManagementService.createUser(validatedUserData);
+      
+      // Create club assignments if provided
+      if (clubIds && Array.isArray(clubIds) && clubIds.length > 0) {
+        const masterDb = databaseManager.getMasterDb();
+        
+        // Create club assignments
+        for (let i = 0; i < clubIds.length; i++) {
+          const clubId = parseInt(clubIds[i]);
+          await masterDb.insert(schema.userClubAssignments).values({
+            userId: user.id,
+            clubId: clubId,
+            isDefault: i === 0, // First club is default
+          });
+        }
+      }
+      
       res.json(user);
     } catch (error) {
       console.error('Create user error:', error);

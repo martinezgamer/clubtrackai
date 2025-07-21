@@ -64,6 +64,7 @@ export const contacts = pgTable("contacts", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   nickname: text("nickname"),
+  stageName: text("stage_name"), // For dancers - their stage/performance name
   role: text("role").notNull(), // dancer, staff, regular, family, friend
   phone: text("phone"),
   email: text("email"),
