@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,7 +10,7 @@ import {
   Bot, Settings, Brain, CheckSquare, UserPlus, FileText, 
   CalendarPlus, Clock, Phone, Calendar, Edit, Users, TrendingUp, Plus, Share2, Shield, LogOut, Building2
 } from 'lucide-react';
-import { contactsApi, memoryApi, calendarApi } from '@/lib/api';
+
 import { format } from 'date-fns';
 import { useAuth } from '@/components/auth/auth-provider';
 import { useToast } from '@/hooks/use-toast';
@@ -29,36 +28,12 @@ export function Sidebar({ onContactSelect, onQuickAction, contacts = [], memoryI
   const { user, logout, isLogoutPending } = useAuth();
   const { toast } = useToast();
 
-  // Use provided data if available, fallback to queries if not
-  const { data: fallbackContacts = [] } = useQuery({
-    queryKey: ['/api/contacts'],
-    queryFn: () => contactsApi.getAll({ status: 'active' }),
-    enabled: !contacts?.length,
-  });
 
-  const { data: fallbackMemoryItems = [] } = useQuery({
-    queryKey: ['/api/memory'],
-    queryFn: () => memoryApi.getAll(),
-    enabled: !memoryItems?.length,
-  });
 
-  const { data: fallbackTodaysEvents = [] } = useQuery({
-    queryKey: ['/api/calendar/events', new Date().toISOString().split('T')[0]],
-    queryFn: () => calendarApi.getEvents(
-      new Date().toISOString().split('T')[0],
-      new Date().toISOString().split('T')[0]
-    ),
-    enabled: !todaysEvents?.length,
-  });
-
-  // Use provided data or fallback to individual queries
-  const finalContacts = (contacts && contacts.length > 0) ? contacts : fallbackContacts;
-  const finalMemoryItems = (memoryItems && memoryItems.length > 0) ? memoryItems : fallbackMemoryItems;
-  const finalTodaysEvents = (todaysEvents && todaysEvents.length > 0) ? todaysEvents : fallbackTodaysEvents;
-  
-  const safeContacts = Array.isArray(finalContacts) ? finalContacts : [];
-  const safeMemoryItems = Array.isArray(finalMemoryItems) ? finalMemoryItems : [];
-  const safeTodaysEvents = Array.isArray(finalTodaysEvents) ? finalTodaysEvents : [];
+  // Use provided data directly since fallback queries are disabled
+  const safeContacts = Array.isArray(contacts) ? contacts : [];
+  const safeMemoryItems = Array.isArray(memoryItems) ? memoryItems : [];
+  const safeTodaysEvents = Array.isArray(todaysEvents) ? todaysEvents : [];
 
   const getContactInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
