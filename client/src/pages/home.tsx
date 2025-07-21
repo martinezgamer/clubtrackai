@@ -18,7 +18,7 @@ import { contactsApi, memoryApi, calendarApi } from '@/lib/api';
 import { Search, Filter, Menu } from 'lucide-react';
 import WeatherWidget from '@/components/weather/weather-widget';
 
-type ModalType = 'none' | 'store-dancer' | 'create-form' | 'add-event' | 'edit-contact' | 'all-contacts' | 'social-media' | 'settings' | 'calendar' | 'sales';
+type ModalType = 'none' | 'manage-dancers' | 'create-form' | 'add-event' | 'edit-contact' | 'all-contacts' | 'social-media' | 'settings' | 'calendar' | 'sales';
 
 export default function Home() {
   const [activeModal, setActiveModal] = useState<ModalType>('none');
@@ -81,14 +81,14 @@ export default function Home() {
       window.location.href = '/enhanced-form-creator';
       return;
     }
-    if (action === 'enhanced-dancer-store') {
+    if (action === 'enhanced-dancer-profiles') {
       window.location.href = '/enhanced-dancer-store';
       return;
     }
     
     switch (action) {
-      case 'store-dancer':
-        setActiveModal('store-dancer');
+      case 'manage-dancers':
+        setActiveModal('manage-dancers');
         setSelectedContact(null);
         break;
       case 'create-form':
@@ -107,7 +107,7 @@ export default function Home() {
         setActiveModal('social-media');
         break;
       case 'create-new':
-        setActiveModal('store-dancer');
+        setActiveModal('manage-dancers');
         setSelectedContact(null);
         break;
       case 'today-schedule':
@@ -194,8 +194,8 @@ export default function Home() {
 
   const getModalTitle = () => {
     switch (activeModal) {
-      case 'store-dancer':
-        return selectedContact ? 'Edit Dancer' : 'Store New Dancer';
+      case 'manage-dancers':
+        return selectedContact ? 'Edit Dancer' : 'Add New Dancer';
       case 'create-form':
         return 'Create New Form';
       case 'add-event':
@@ -219,7 +219,7 @@ export default function Home() {
 
   const getModalDescription = () => {
     switch (activeModal) {
-      case 'store-dancer':
+      case 'manage-dancers':
         return selectedContact ? 'Edit dancer information and preferences' : 'Add a new dancer to your club management system';
       case 'create-form':
         return 'Create a new form for data collection and feedback';
@@ -244,7 +244,7 @@ export default function Home() {
 
   const renderModalContent = () => {
     switch (activeModal) {
-      case 'store-dancer':
+      case 'manage-dancers':
       case 'edit-contact':
         return (
           <ContactForm

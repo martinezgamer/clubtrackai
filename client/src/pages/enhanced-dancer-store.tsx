@@ -203,8 +203,8 @@ export default function EnhancedDancerStore() {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Enhanced AI Dancer Store</h1>
-          <p className="text-gray-400 mt-2">Create intelligent dancer profiles with advanced AI assistance</p>
+          <h1 className="text-3xl font-bold text-white">Dancer Profile Management</h1>
+          <p className="text-gray-400 mt-2">Create and manage professional dancer profiles with AI assistance</p>
         </div>
         {chatPrefillData && (
           <Badge variant="secondary" className="bg-blue-500/20 text-blue-300">
