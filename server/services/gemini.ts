@@ -7,18 +7,36 @@ import { WeatherService } from "./weather";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
+// Safe credentials parsing function
+const parseCredentials = () => {
+  try {
+    if (process.env.GOOGLE_CLOUD_CREDENTIALS) {
+      // Check if it's already a JSON string
+      if (process.env.GOOGLE_CLOUD_CREDENTIALS.startsWith('{')) {
+        return JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS);
+      }
+      // If it's just an API key, don't parse as JSON
+      return undefined;
+    }
+    return undefined;
+  } catch (error) {
+    console.warn('Failed to parse Google Cloud credentials, using keyFilename instead');
+    return undefined;
+  }
+};
+
 // Initialize Google Cloud Vision client
 const visionClient = new ImageAnnotatorClient({
   keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS || undefined,
   projectId: process.env.GOOGLE_CLOUD_PROJECT_ID || undefined,
-  credentials: process.env.GOOGLE_CLOUD_CREDENTIALS ? JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS) : undefined
+  credentials: parseCredentials()
 });
 
 // Initialize Google Document AI client
 const documentClient = new DocumentProcessorServiceClient({
   keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS || undefined,
   projectId: process.env.GOOGLE_CLOUD_PROJECT_ID || undefined,
-  credentials: process.env.GOOGLE_CLOUD_CREDENTIALS ? JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS) : undefined
+  credentials: parseCredentials()
 });
 
 export class SamAI {
